@@ -68,3 +68,13 @@ def test_compute_layer_lengths_reads_from_file(tmp_path):
 
     lengths = compute_layer_lengths(file_path)
     assert lengths == {"WALLS": pytest.approx(5.0)}
+
+
+def test_degenerate_lwpolyline_not_in_result():
+    doc = ezdxf.new()
+    msp = doc.modelspace()
+    # Single-point LWPOLYLINE has no length-bearing geometry
+    msp.add_lwpolyline([(0, 0)], dxfattribs={"layer": "DEGENERATE"})
+    lengths = compute_layer_lengths_from_doc(doc)
+    # Layer should not appear in result, not even with 0.0
+    assert lengths == {}

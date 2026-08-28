@@ -50,7 +50,7 @@ def _entity_length(entity) -> float | None:
     if dxftype == "LWPOLYLINE":
         points = list(entity.get_points("xy"))
         if len(points) < 2:
-            return 0.0
+            return None
         total = 0.0
         for i in range(len(points) - 1):
             total += _distance(points[i], points[i + 1])
