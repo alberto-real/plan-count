@@ -143,5 +143,32 @@ tests/
 ## 7. Open Items For Later Sub-Projects (explicitly not decided here)
 
 - Real OpenRouter/Gemini call shape, retry/timeout policy.
-- Max concurrent uploads / rate limiting.
+- Max concurrent uploads / rate limiting (nginx `client_max_body_size` in the
+  Infra + Deploy sub-project should be treated as a required deliverable
+  here, not an optimization — this backend currently buffers the full
+  upload into memory before checking its size, so nothing besides the
+  reverse proxy actually bounds request size against a hostile client).
 - CORS origins (will depend on sub-project 2/4 deployment domains).
+- **DXF unit assumption (ruling, added after final review of sub-project 1):**
+  `linearMeters` is computed directly from raw DXF coordinate deltas with no
+  `$INSUNITS` awareness. This backend treats a source drawing's units as
+  **contractually meters** — it does not read or convert based on the
+  drawing's actual unit header. A client `.dxf` authored in millimeters (a
+  common architectural CAD convention) will silently produce `linearMeters`
+  values 1000× too large. This was a gap in this spec (no unit handling was
+  ever specified, so the current behavior is not a deviation from it), not
+  an implementation defect. Before the frontend (sub-project 2) or any real
+  client onboarding relies on this field, either (a) make `dxf_service` read
+  `$INSUNITS` and normalize to meters, or (b) keep the meters-only
+  assumption but document and enforce it at upload time (reject or warn on
+  a non-meter drawing). Deferred; not built in sub-project 1.
+- Bulge/arc segments on `LWPOLYLINE` are measured as straight chords between
+  vertices, not true arc length (under-reports, never over-reports, for any
+  curved wall/room outline). No arc-bearing fixture was ever specified for
+  this pass. Revisit if real client drawings use curved polylines.
+- Geometry inside block references (`INSERT`) and legacy `POLYLINE` entities
+  is not counted at all (only top-level `LINE`/`LWPOLYLINE` in modelspace,
+  per §5) — a real AutoCAD export using either produces
+  `{"layers": [], "undeterminedLayers": []}` with no signal to the frontend
+  that measurable geometry existed and wasn't counted. Consider a follow-up
+  field or documented empty-state before this is user-facing.
