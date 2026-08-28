@@ -38,7 +38,10 @@ def compute_layer_lengths_from_doc(doc: Drawing) -> dict[str, float]:
         layer = entity.dxf.layer
         lengths[layer] = lengths.get(layer, 0.0) + length
 
-    return lengths
+    # Layers with zero measurable entities are excluded entirely (nothing
+    # to report) — this also covers a zero-length LINE, or any other
+    # combination of entities that sums to exactly zero on a layer.
+    return {layer: total for layer, total in lengths.items() if total != 0.0}
 
 
 def _entity_length(entity) -> float | None:

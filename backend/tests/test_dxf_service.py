@@ -78,3 +78,13 @@ def test_degenerate_lwpolyline_not_in_result():
     lengths = compute_layer_lengths_from_doc(doc)
     # Layer should not appear in result, not even with 0.0
     assert lengths == {}
+
+
+def test_zero_length_line_not_in_result():
+    doc = ezdxf.new()
+    msp = doc.modelspace()
+    # A LINE whose start and end coincide has zero length.
+    msp.add_line((5, 5), (5, 5), dxfattribs={"layer": "ZERO_LENGTH"})
+    lengths = compute_layer_lengths_from_doc(doc)
+    # Layer should not appear in result, not even with 0.0
+    assert lengths == {}

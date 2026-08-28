@@ -33,7 +33,7 @@ async def upload_dxf(file: UploadFile = File(...)) -> UploadResponse:
     try:
         lengths = compute_layer_lengths(tmp_path)
     except (DXFStructureError, OSError, ValueError) as exc:
-        raise HTTPException(status_code=400, detail=f"Invalid DXF file: {exc}") from exc
+        raise HTTPException(status_code=400, detail="Uploaded file is not a valid DXF") from exc
     finally:
         tmp_path.unlink(missing_ok=True)
 

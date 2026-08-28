@@ -60,6 +60,19 @@ def test_upload_rejects_oversized_file(monkeypatch):
     assert response.status_code == 413
 
 
+def test_upload_missing_file_field_returns_400():
+    response = client.post("/api/upload")
+    assert response.status_code == 400
+
+
+def test_upload_wrong_field_name_returns_400():
+    response = client.post(
+        "/api/upload",
+        files={"wrong_field_name": ("sample_two_layers.dxf", b"irrelevant", "application/dxf")},
+    )
+    assert response.status_code == 400
+
+
 def test_upload_degrades_gracefully_when_naming_service_fails(monkeypatch):
     from app.api import endpoints
 
