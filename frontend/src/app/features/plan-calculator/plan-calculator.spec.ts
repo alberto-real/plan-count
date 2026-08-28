@@ -144,4 +144,41 @@ describe('PlanCalculator', () => {
     const banner: HTMLElement | null = fixture.nativeElement.querySelector('div.text-red-700');
     expect(banner?.textContent).toContain('Some error');
   });
+
+  it('selects the correct option in the undetermined-row select even when it is not alphabetically first', () => {
+    fakeService.response = {
+      layers: [
+        { rawLayerName: 'LAY_A', materialName: 'Aluminium', linearMeters: 3 },
+        { rawLayerName: 'LAY_X', materialName: 'LAY_X', linearMeters: 5 },
+      ],
+      undeterminedLayers: ['LAY_X'],
+    };
+    selectFile();
+    component.onSubmit();
+    component.onAssignMaterial('LAY_X', 'Zinc');
+    fixture.detectChanges();
+
+    const row = component.rows().find((r) => r.rawLayerName === 'LAY_X')!;
+    expect(row.effectiveMaterial).toBe('Zinc');
+    expect(component.knownMaterials()).toEqual(['Aluminium', 'Zinc']);
+
+    const select: HTMLSelectElement | null = fixture.nativeElement.querySelector('select');
+    expect(select).not.toBeNull();
+    expect(select!.value).toBe('Zinc');
+  });
+
+  it('dismisses the error and resets status and message', () => {
+    fakeService.errorPayload = { error: { detail: 'Some error' } };
+    selectFile();
+    component.onSubmit();
+    fixture.detectChanges();
+
+    const dismissButton: HTMLButtonElement | null = fixture.nativeElement.querySelector('button[aria-label="Tanca"]');
+    expect(dismissButton).not.toBeNull();
+    dismissButton!.click();
+    fixture.detectChanges();
+
+    expect(component.status()).toBe('idle');
+    expect(component.errorMessage()).toBeNull();
+  });
 });

@@ -110,6 +110,11 @@ export class PlanCalculator {
     });
   }
 
+  dismissError(): void {
+    this.status.set('idle');
+    this.errorMessage.set(null);
+  }
+
   private extractErrorMessage(err: unknown): string {
     if (
       err &&

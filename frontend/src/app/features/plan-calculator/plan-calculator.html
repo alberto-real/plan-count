@@ -37,8 +37,16 @@
   }
 
   @if (status() === 'error') {
-    <div class="rounded border border-red-300 bg-red-50 px-4 py-3 text-sm text-red-700">
-      {{ errorMessage() }}
+    <div class="flex items-start justify-between gap-4 rounded border border-red-300 bg-red-50 px-4 py-3 text-sm text-red-700">
+      <span>{{ errorMessage() }}</span>
+      <button
+        type="button"
+        (click)="dismissError()"
+        class="text-red-700 hover:text-red-900"
+        aria-label="Tanca"
+      >
+        ×
+      </button>
     </div>
   }
 
@@ -72,12 +80,11 @@
                   />
                 } @else {
                   <select
-                    [value]="row.effectiveMaterial"
                     (change)="onMaterialSelectChange(row.rawLayerName, $event)"
                     class="rounded border border-gray-300 px-2 py-1 text-sm"
                   >
                     @for (material of knownMaterials(); track material) {
-                      <option [value]="material">{{ material }}</option>
+                      <option [value]="material" [selected]="material === row.effectiveMaterial">{{ material }}</option>
                     }
                     <option [value]="NEW_MATERIAL_OPTION">+ Nou material</option>
                   </select>
