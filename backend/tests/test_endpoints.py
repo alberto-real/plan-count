@@ -58,3 +58,34 @@ def test_upload_rejects_oversized_file(monkeypatch):
             files={"file": ("sample_two_layers.dxf", f, "application/dxf")},
         )
     assert response.status_code == 413
+
+
+def test_upload_degrades_gracefully_when_naming_service_fails(monkeypatch):
+    from app.api import endpoints
+
+    def _raise(self, raw_names):
+        raise RuntimeError("naming service unavailable")
+
+    monkeypatch.setattr(
+        endpoints.StubLayerNamingService, "map_layer_names", _raise
+    )
+
+    with open(FIXTURE, "rb") as f:
+        response = client.post(
+            "/api/upload",
+            files={"file": ("sample_two_layers.dxf", f, "application/dxf")},
+        )
+
+    assert response.status_code == 200
+    body = response.json()
+
+    layers_by_name = {layer["rawLayerName"]: layer for layer in body["layers"]}
+    assert set(layers_by_name.keys()) == {"LAY_0725_EXT", "WALL_UNKNOWN_042"}
+
+    assert layers_by_name["LAY_0725_EXT"]["materialName"] == "LAY_0725_EXT"
+    assert layers_by_name["LAY_0725_EXT"]["linearMeters"] == 14.0
+
+    assert layers_by_name["WALL_UNKNOWN_042"]["materialName"] == "WALL_UNKNOWN_042"
+    assert layers_by_name["WALL_UNKNOWN_042"]["linearMeters"] == 5.0
+
+    assert set(body["undeterminedLayers"]) == {"LAY_0725_EXT", "WALL_UNKNOWN_042"}
