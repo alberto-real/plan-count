@@ -1,9 +1,10 @@
 import { Component } from '@angular/core';
-import { PlanCalculator } from './features/plan-calculator/plan-calculator';
+import { RouterOutlet } from '@angular/router';
+import { Navbar } from './core/navbar/navbar';
 
 @Component({
-  imports: [PlanCalculator],
   selector: 'app-root',
+  imports: [RouterOutlet, Navbar],
   templateUrl: './app.html',
 })
 export class App {}
