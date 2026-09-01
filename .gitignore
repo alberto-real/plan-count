@@ -1,1 +1,4 @@
 .worktrees/
+.claude/worktrees/
+.playwright-mcp/
+docs/
