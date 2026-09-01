@@ -1,0 +1,30 @@
+{
+  "navbar": {
+    "appName": "PlanCount",
+    "login": "Inicia sessió",
+    "logout": "Tanca sessió"
+  },
+  "landing": {
+    "title": "Compta materials de plànols CAD en segons",
+    "subtitle": "Puja un fitxer DXF i obtén metres lineals i àrees per material a l'instant.",
+    "cta": "Comença"
+  },
+  "login": {
+    "title": "Inicia sessió",
+    "button": "Inicia sessió amb Keycloak"
+  },
+  "planCalculator": {
+    "fileLabel": "Fitxer DXF",
+    "heightLabel": "Alçada (cm)",
+    "submitButton": "Analitza",
+    "uploading": "Analitzant el fitxer...",
+    "dismissError": "Tanca",
+    "tableLayer": "Capa",
+    "tableMaterial": "Material",
+    "tableLinearMeters": "Metres lineals",
+    "tableArea": "Àrea (m²)",
+    "newMaterialPlaceholder": "Nom del material nou",
+    "newMaterialOption": "+ Nou material",
+    "genericError": "S'ha produït un error inesperat."
+  }
+}

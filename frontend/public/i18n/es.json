@@ -1,0 +1,30 @@
+{
+  "navbar": {
+    "appName": "PlanCount",
+    "login": "Iniciar sesión",
+    "logout": "Cerrar sesión"
+  },
+  "landing": {
+    "title": "Cuenta materiales de planos CAD en segundos",
+    "subtitle": "Sube un archivo DXF y obtén metros lineales y áreas por material al instante.",
+    "cta": "Empezar"
+  },
+  "login": {
+    "title": "Iniciar sesión",
+    "button": "Iniciar sesión con Keycloak"
+  },
+  "planCalculator": {
+    "fileLabel": "Archivo DXF",
+    "heightLabel": "Altura (cm)",
+    "submitButton": "Analizar",
+    "uploading": "Analizando el archivo...",
+    "dismissError": "Cerrar",
+    "tableLayer": "Capa",
+    "tableMaterial": "Material",
+    "tableLinearMeters": "Metros lineales",
+    "tableArea": "Área (m²)",
+    "newMaterialPlaceholder": "Nombre del material nuevo",
+    "newMaterialOption": "+ Nuevo material",
+    "genericError": "Se ha producido un error inesperado."
+  }
+}

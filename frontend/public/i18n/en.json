@@ -1,0 +1,30 @@
+{
+  "navbar": {
+    "appName": "PlanCount",
+    "login": "Log in",
+    "logout": "Log out"
+  },
+  "landing": {
+    "title": "Count materials from CAD plans in seconds",
+    "subtitle": "Upload a DXF file and get linear meters and areas per material instantly.",
+    "cta": "Get started"
+  },
+  "login": {
+    "title": "Log in",
+    "button": "Log in with Keycloak"
+  },
+  "planCalculator": {
+    "fileLabel": "DXF file",
+    "heightLabel": "Height (cm)",
+    "submitButton": "Analyze",
+    "uploading": "Analyzing the file...",
+    "dismissError": "Close",
+    "tableLayer": "Layer",
+    "tableMaterial": "Material",
+    "tableLinearMeters": "Linear meters",
+    "tableArea": "Area (m²)",
+    "newMaterialPlaceholder": "New material name",
+    "newMaterialOption": "+ New material",
+    "genericError": "An unexpected error occurred."
+  }
+}
