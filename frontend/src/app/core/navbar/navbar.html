@@ -1,0 +1,35 @@
+<nav class="flex items-center justify-between border-b border-gray-200 px-6 py-3">
+  <a routerLink="/" class="font-semibold text-gray-900">{{ 'navbar.appName' | transloco }}</a>
+  <div class="flex items-center gap-4">
+    @if (isAuthenticated()) {
+      <span data-testid="navbar-username" class="text-sm text-gray-600">{{ userProfile()?.name }}</span>
+      <button
+        type="button"
+        data-testid="navbar-logout"
+        (click)="logout()"
+        class="text-sm font-medium text-blue-600"
+      >
+        {{ 'navbar.logout' | transloco }}
+      </button>
+    } @else {
+      <button
+        type="button"
+        data-testid="navbar-login"
+        (click)="login()"
+        class="text-sm font-medium text-blue-600"
+      >
+        {{ 'navbar.login' | transloco }}
+      </button>
+    }
+    <select
+      data-testid="navbar-lang"
+      (change)="onLangChange($event)"
+      [value]="activeLang()"
+      class="rounded border border-gray-300 px-2 py-1 text-sm"
+    >
+      @for (lang of availableLangs; track lang) {
+        <option [value]="lang">{{ lang }}</option>
+      }
+    </select>
+  </div>
+</nav>
