@@ -7,8 +7,11 @@ import { UserProfile } from './models';
 export class AuthService {
   private readonly oauthService = inject(OAuthService);
 
-  readonly isAuthenticated = signal(false);
-  readonly userProfile = signal<UserProfile | null>(null);
+  private readonly _isAuthenticated = signal(false);
+  private readonly _userProfile = signal<UserProfile | null>(null);
+
+  readonly isAuthenticated = this._isAuthenticated.asReadonly();
+  readonly userProfile = this._userProfile.asReadonly();
 
   initialize(): Promise<void> {
     const authConfig: AuthConfig = {
@@ -29,8 +32,8 @@ export class AuthService {
       .then(() => this.syncStateFromToken())
       .catch((error: unknown) => {
         console.error('Auth initialization failed', error);
-        this.isAuthenticated.set(false);
-        this.userProfile.set(null);
+        this._isAuthenticated.set(false);
+        this._userProfile.set(null);
       });
   }
 
@@ -40,8 +43,8 @@ export class AuthService {
 
   logout(): void {
     this.oauthService.logOut();
-    this.isAuthenticated.set(false);
-    this.userProfile.set(null);
+    this._isAuthenticated.set(false);
+    this._userProfile.set(null);
   }
 
   private onOAuthEvent(event: OAuthEvent): void {
@@ -49,19 +52,19 @@ export class AuthService {
       this.syncStateFromToken();
     }
     if (event.type === 'session_terminated' || event.type === 'session_error') {
-      this.isAuthenticated.set(false);
-      this.userProfile.set(null);
+      this._isAuthenticated.set(false);
+      this._userProfile.set(null);
     }
   }
 
   private syncStateFromToken(): void {
     const hasValidToken = this.oauthService.hasValidIdToken();
-    this.isAuthenticated.set(hasValidToken);
+    this._isAuthenticated.set(hasValidToken);
     if (!hasValidToken) {
-      this.userProfile.set(null);
+      this._userProfile.set(null);
       return;
     }
     const claims = this.oauthService.getIdentityClaims() as { name?: string; email?: string } | null;
-    this.userProfile.set(claims ? { name: claims.name ?? '', email: claims.email ?? '' } : null);
+    this._userProfile.set(claims ? { name: claims.name ?? '', email: claims.email ?? '' } : null);
   }
 }
