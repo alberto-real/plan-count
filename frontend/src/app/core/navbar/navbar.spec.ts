@@ -67,6 +67,11 @@ describe('Navbar', () => {
     expect(fakeAuthService.logoutCalled).toBe(true);
   });
 
+  it('selects the option matching the active language on initial render', () => {
+    const select: HTMLSelectElement = fixture.nativeElement.querySelector('select[data-testid="navbar-lang"]');
+    expect(select.value).toBe('en');
+  });
+
   it('switches translated text when the language selector changes', () => {
     const select: HTMLSelectElement = fixture.nativeElement.querySelector('select[data-testid="navbar-lang"]');
     select.value = 'ca';

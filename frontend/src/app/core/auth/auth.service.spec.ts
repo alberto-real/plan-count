@@ -1,5 +1,7 @@
 import { TestBed } from '@angular/core/testing';
+import { provideRouter, Router } from '@angular/router';
 import { Subject } from 'rxjs';
+import { vi } from 'vitest';
 import { AuthConfig, OAuthEvent, OAuthService } from 'angular-oauth2-oidc';
 import { AuthService } from './auth.service';
 
@@ -48,7 +50,7 @@ describe('AuthService', () => {
   beforeEach(() => {
     fakeOAuthService = new FakeOAuthService();
     TestBed.configureTestingModule({
-      providers: [AuthService, { provide: OAuthService, useValue: fakeOAuthService }],
+      providers: [AuthService, provideRouter([]), { provide: OAuthService, useValue: fakeOAuthService }],
     });
     service = TestBed.inject(AuthService);
   });
@@ -93,6 +95,17 @@ describe('AuthService', () => {
     expect(fakeOAuthService.logOutCalled).toBe(true);
     expect(service.isAuthenticated()).toBe(false);
     expect(service.userProfile()).toBeNull();
+  });
+
+  it('logout() navigates away from the current route', async () => {
+    const router = TestBed.inject(Router);
+    const navigateSpy = vi.spyOn(router, 'navigateByUrl');
+    fakeOAuthService.validIdToken = true;
+    await service.initialize();
+
+    service.logout();
+
+    expect(navigateSpy).toHaveBeenCalledWith('/');
   });
 
   it('re-syncs state when OAuthService emits a token_received event', async () => {

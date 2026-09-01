@@ -2,8 +2,9 @@ import { ApplicationConfig, inject, provideAppInitializer, provideBrowserGlobalE
 import { provideHttpClient } from '@angular/common/http';
 import { provideRouter } from '@angular/router';
 import { provideTransloco, TranslocoService } from '@jsverse/transloco';
+import { firstValueFrom } from 'rxjs';
 import { routes } from './app.routes';
-import { AuthService } from './core/auth/auth.service';
+import { provideAuth } from './core/auth/auth.providers';
 import { detectLanguage } from './core/i18n/language-detection';
 import { TranslocoHttpLoader } from './core/i18n/transloco-http.loader';
 import { environment } from '../environments/environment';
@@ -24,8 +25,10 @@ export const appConfig: ApplicationConfig = {
     }),
     provideAppInitializer(() => {
       const translocoService = inject(TranslocoService);
-      translocoService.setActiveLang(detectLanguage(navigator.language));
+      const lang = detectLanguage(navigator.language);
+      translocoService.setActiveLang(lang);
+      return firstValueFrom(translocoService.load(lang));
     }),
-    provideAppInitializer(() => inject(AuthService).initialize()),
+    ...provideAuth(),
   ]
 };

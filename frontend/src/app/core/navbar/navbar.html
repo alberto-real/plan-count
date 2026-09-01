@@ -24,11 +24,10 @@
     <select
       data-testid="navbar-lang"
       (change)="onLangChange($event)"
-      [value]="activeLang()"
       class="rounded border border-gray-300 px-2 py-1 text-sm"
     >
       @for (lang of availableLangs; track lang) {
-        <option [value]="lang">{{ lang }}</option>
+        <option [value]="lang" [selected]="lang === activeLang()">{{ lang }}</option>
       }
     </select>
   </div>

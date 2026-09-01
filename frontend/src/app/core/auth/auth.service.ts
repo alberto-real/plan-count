@@ -1,4 +1,5 @@
 import { Service, inject, signal } from '@angular/core';
+import { Router } from '@angular/router';
 import { AuthConfig, OAuthEvent, OAuthService } from 'angular-oauth2-oidc';
 import { environment } from '../../../environments/environment';
 import { UserProfile } from './models';
@@ -6,6 +7,7 @@ import { UserProfile } from './models';
 @Service()
 export class AuthService {
   private readonly oauthService = inject(OAuthService);
+  private readonly router = inject(Router);
 
   private readonly _isAuthenticated = signal(false);
   private readonly _userProfile = signal<UserProfile | null>(null);
@@ -45,6 +47,7 @@ export class AuthService {
     this.oauthService.logOut();
     this._isAuthenticated.set(false);
     this._userProfile.set(null);
+    this.router.navigateByUrl('/');
   }
 
   private onOAuthEvent(event: OAuthEvent): void {
