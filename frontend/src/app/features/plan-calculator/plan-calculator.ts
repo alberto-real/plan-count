@@ -1,5 +1,6 @@
 import { Component, computed, inject, signal } from '@angular/core';
 import { DecimalPipe } from '@angular/common';
+import { TranslocoModule, TranslocoService } from '@jsverse/transloco';
 import { UploadResponse } from './models';
 import { UploadService } from './upload.service';
 
@@ -15,11 +16,12 @@ export interface PlanRow {
 
 @Component({
   selector: 'app-plan-calculator',
-  imports: [DecimalPipe],
+  imports: [DecimalPipe, TranslocoModule],
   templateUrl: './plan-calculator.html',
 })
 export class PlanCalculator {
   private readonly uploadService = inject(UploadService);
+  private readonly translocoService = inject(TranslocoService);
 
   readonly NEW_MATERIAL_OPTION = '__new__';
 
@@ -127,6 +129,6 @@ export class PlanCalculator {
     ) {
       return (err.error as { detail: string }).detail;
     }
-    return "S'ha produït un error inesperat.";
+    return this.translocoService.translate('planCalculator.genericError');
   }
 }

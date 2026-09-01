@@ -3,6 +3,7 @@ import { Observable, of, throwError } from 'rxjs';
 import { PlanCalculator } from './plan-calculator';
 import { UploadResponse } from './models';
 import { UploadService } from './upload.service';
+import { provideTranslocoTesting } from '../../core/i18n/testing/provide-transloco-testing';
 
 class FakeUploadService {
   response: UploadResponse | null = null;
@@ -25,7 +26,7 @@ describe('PlanCalculator', () => {
     fakeService = new FakeUploadService();
     TestBed.configureTestingModule({
       imports: [PlanCalculator],
-      providers: [{ provide: UploadService, useValue: fakeService }],
+      providers: [provideTranslocoTesting(), { provide: UploadService, useValue: fakeService }],
     });
     fixture = TestBed.createComponent(PlanCalculator);
     component = fixture.componentInstance;
@@ -126,13 +127,13 @@ describe('PlanCalculator', () => {
     expect(component.errorMessage()).toBe('Uploaded file is not a valid DXF');
   });
 
-  it('falls back to a generic error message when the backend gives no detail', () => {
+  it('falls back to a translated generic error message when the backend gives no detail', () => {
     fakeService.errorPayload = { status: 0 };
     selectFile();
     component.onSubmit();
 
     expect(component.status()).toBe('error');
-    expect(component.errorMessage()).toBe("S'ha produït un error inesperat.");
+    expect(component.errorMessage()).toBe('An unexpected error occurred.');
   });
 
   it('renders the error banner text in the DOM', () => {
@@ -173,7 +174,7 @@ describe('PlanCalculator', () => {
     component.onSubmit();
     fixture.detectChanges();
 
-    const dismissButton: HTMLButtonElement | null = fixture.nativeElement.querySelector('button[aria-label="Tanca"]');
+    const dismissButton: HTMLButtonElement | null = fixture.nativeElement.querySelector('button[data-testid="dismiss-error"]');
     expect(dismissButton).not.toBeNull();
     dismissButton!.click();
     fixture.detectChanges();
