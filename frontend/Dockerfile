@@ -1,9 +1,18 @@
-# Stub Dockerfile — full multi-stage build (Angular build + nginx serve)
-# defined in the Infra + Deploy sub-project. This is a placeholder so the
-# monorepo tree matches the spec; it is not used for anything yet.
-FROM node:20-slim
+# syntax=docker/dockerfile:1.7
+# ---- Build stage ----
+FROM node:22-slim AS build
 WORKDIR /app
-COPY package*.json ./
-RUN npm install
-COPY . .
-CMD ["npx", "ng", "serve", "--host", "0.0.0.0"]
+
+COPY frontend/package.json frontend/package-lock.json ./
+RUN npm ci
+
+COPY frontend/. .
+RUN npm run build -- --configuration=production
+
+# ---- Runtime stage ----
+FROM nginx:alpine
+COPY nginx/default.conf /etc/nginx/conf.d/default.conf
+COPY --from=build /app/dist/frontend/browser /usr/share/nginx/html
+
+EXPOSE 80
+CMD ["nginx", "-g", "daemon off;"]
