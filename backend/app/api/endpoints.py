@@ -4,10 +4,11 @@ import tempfile
 from pathlib import Path
 
 from ezdxf import DXFStructureError
-from fastapi import APIRouter, File, HTTPException, UploadFile
+from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
 
 from app.config import settings
 from app.models import LayerResult, UploadResponse
+from app.services.auth_service import verify_token
 from app.services.dxf_service import compute_layer_lengths
 from app.services.llm_service import LayerNamingService, StubLayerNamingService
 
@@ -16,7 +17,7 @@ router = APIRouter()
 _naming_service: LayerNamingService = StubLayerNamingService()
 
 
-@router.post("/upload", response_model=UploadResponse)
+@router.post("/upload", response_model=UploadResponse, dependencies=[Depends(verify_token)])
 async def upload_dxf(file: UploadFile = File(...)) -> UploadResponse:
     if not file.filename or not file.filename.lower().endswith(".dxf"):
         raise HTTPException(status_code=400, detail="Only .dxf files are supported")
