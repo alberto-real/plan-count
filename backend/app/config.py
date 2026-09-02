@@ -6,6 +6,7 @@ class Settings(BaseSettings):
 
     openrouter_api_key: str = "stub-key"
     max_upload_size_mb: int = 20
+    cors_allowed_origin: str = "http://localhost:4200"
 
 
 settings = Settings()
