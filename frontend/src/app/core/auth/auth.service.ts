@@ -50,6 +50,10 @@ export class AuthService {
     this.router.navigateByUrl('/');
   }
 
+  getAccessToken(): string | null {
+    return this.oauthService.getAccessToken() || null;
+  }
+
   private onOAuthEvent(event: OAuthEvent): void {
     if (event.type === 'token_received') {
       this.syncStateFromToken();
