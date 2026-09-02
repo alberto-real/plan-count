@@ -1,0 +1,56 @@
+name: Deploy to OCI VM
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-prod
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - name: Setup SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.VM_SSH_PRIVATE_KEY }}" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keyscan -H "${{ secrets.VM_HOST }}" >> ~/.ssh/known_hosts 2>/dev/null
+
+      - name: Deploy
+        env:
+          HOST: ${{ secrets.VM_HOST }}
+          USER: ${{ secrets.VM_USER }}
+        run: |
+          ssh -i ~/.ssh/deploy_key "$USER@$HOST" bash -s <<'EOF'
+          set -euo pipefail
+          cd /home/ubuntu/plan-count
+          echo "=== git pull ==="
+          git fetch --prune origin
+          git reset --hard origin/main
+          echo "=== docker compose build + up ==="
+          docker compose --env-file .env.prod up -d --build
+          echo "=== prune old images ==="
+          docker image prune -f
+          echo "=== final state ==="
+          docker compose --env-file .env.prod ps
+          EOF
+
+      - name: Smoke test
+        run: |
+          sleep 15
+          for i in 1 2 3 4 5 6; do
+            code=$(curl -sSo /dev/null -w "%{http_code}" --max-time 15 "https://plan-count.albertoreal.com/api/health" || echo "000")
+            if [ "$code" = "200" ]; then
+              echo "health check OK (attempt $i)"
+              exit 0
+            fi
+            echo "attempt $i: code=$code, retrying..."
+            sleep 10
+          done
+          echo "❌ health check did not return 200 after 6 attempts"
+          exit 1
