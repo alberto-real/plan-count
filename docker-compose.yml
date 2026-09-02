@@ -1,0 +1,32 @@
+name: plan-count
+
+services:
+  backend:
+    build:
+      context: ./backend
+    restart: unless-stopped
+    environment:
+      OPENROUTER_API_KEY: ${OPENROUTER_API_KEY:?OPENROUTER_API_KEY is required}
+      CORS_ALLOWED_ORIGIN: ${CORS_ALLOWED_ORIGIN:?CORS_ALLOWED_ORIGIN is required}
+    networks:
+      - internal
+
+  frontend:
+    build:
+      context: .
+      dockerfile: frontend/Dockerfile
+    restart: unless-stopped
+    depends_on:
+      - backend
+    ports:
+      # Only accessible via localhost on the VM; the Cloudflare Tunnel
+      # (cloudflared systemd, in albertoreal-infra) exposes it as
+      # plan-count.albertoreal.com — same pattern as pokemon-game (8090)
+      # and Keycloak (8081) on this VM.
+      - "127.0.0.1:8091:80"
+    networks:
+      - internal
+
+networks:
+  internal:
+    driver: bridge

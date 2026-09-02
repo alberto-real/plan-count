@@ -2,3 +2,4 @@
 .claude/worktrees/
 .playwright-mcp/
 docs/
+.env.prod
