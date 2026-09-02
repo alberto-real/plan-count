@@ -10,6 +10,7 @@ _ISSUER = "https://auth.albertoreal.com/realms/albertoreal"
 _JWKS_URL = f"{_ISSUER}/protocol/openid-connect/certs"
 _CLIENT_ID = "plan-count-frontend"
 _JWKS_CACHE_TTL_SECONDS = 300
+_JWKS_MIN_REFETCH_INTERVAL_SECONDS = 30
 
 # In-memory JWKS cache: {"keys": {kid: jwk}, "fetched_at": monotonic_seconds}.
 # Refetched on a kid cache-miss (handles Keycloak's own key rotation) or
@@ -31,8 +32,11 @@ def _fetch_jwks() -> dict[str, dict]:
 
 def _get_signing_key(kid: str) -> dict:
     keys: dict[str, dict] = _jwks_cache["keys"]  # type: ignore[assignment]
-    is_stale = time.monotonic() - _jwks_cache["fetched_at"] > _JWKS_CACHE_TTL_SECONDS  # type: ignore[operator]
-    if kid not in keys or is_stale:
+    fetched_at: float = _jwks_cache["fetched_at"]  # type: ignore[assignment]
+    age = time.monotonic() - fetched_at
+    is_stale = age > _JWKS_CACHE_TTL_SECONDS
+    kid_missing_and_worth_retrying = kid not in keys and age > _JWKS_MIN_REFETCH_INTERVAL_SECONDS
+    if is_stale or kid_missing_and_worth_retrying:
         keys = _fetch_jwks()
     if kid not in keys:
         raise _UNAUTHORIZED
