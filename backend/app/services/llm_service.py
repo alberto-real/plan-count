@@ -1,46 +1,130 @@
+from __future__ import annotations
+
+import base64
+import json
 from abc import ABC, abstractmethod
 
+import httpx
 
-class LayerNamingService(ABC):
-    """Maps raw CAD layer names to human-readable material names.
+from app.models import LegendEntry, StyleGroup
 
-    Implementations perform semantic interpretation only — they must
-    never compute lengths, areas, or any other measurement. A layer
-    name the implementation cannot confidently resolve MUST simply be
-    omitted from the returned dict rather than guessed at; callers
-    treat any omitted name as undetermined and fall back to the raw
-    name themselves.
+
+class LegendReadingService(ABC):
+    """Reads a legend from a rendered image, choosing colors/linetypes/
+    lineweights only from a fixed list of real candidates the caller
+    already extracted deterministically — never inventing a value.
     """
 
     @abstractmethod
-    def map_layer_names(self, raw_names: list[str]) -> dict[str, str]:
-        """Return a partial mapping of ``{raw_name: material_name}``.
-
-        Only names this implementation can confidently resolve appear
-        as keys in the result. The result may be empty.
-        """
+    def read_legend(self, image_png: bytes, candidates: list[StyleGroup]) -> list[LegendEntry]:
+        """Return one `LegendEntry` per row the service found in the
+        image. Every returned `colorHex`/`linetype`/`lineweight` is copied
+        verbatim from one of `candidates` — never synthesized."""
 
 
-class StubLayerNamingService(LayerNamingService):
-    """Deterministic stand-in for the future OpenRouter/Gemini-backed
-    service.
-
-    Recognizes a small hardcoded table of layer names so callers and
-    tests can exercise both the "determined" and "undetermined" paths
-    without any network access. A real implementation can replace this
-    one later without any change to code that consumes
-    `LayerNamingService` — only the class instantiated in
-    `api/endpoints.py` changes.
+class StubLegendReadingService(LegendReadingService):
+    """Deterministic stand-in for tests / local dev without network
+    access: maps every candidate 1:1, in order, to a synthetic key/label.
     """
 
-    _KNOWN_MATERIALS: dict[str, str] = {
-        "LAY_0725_EXT": "Yellowish Green Interior",
-        "WALL_YEL_0923": "Yellow Wall Paint",
-    }
+    def read_legend(self, image_png: bytes, candidates: list[StyleGroup]) -> list[LegendEntry]:
+        return [
+            LegendEntry(
+                key=f"C{i + 1}",
+                label=f"Candidate {i + 1}",
+                colorHex=candidate.colorHex,
+                linetype=candidate.linetype,
+                lineweight=candidate.lineweight,
+            )
+            for i, candidate in enumerate(candidates)
+        ]
 
-    def map_layer_names(self, raw_names: list[str]) -> dict[str, str]:
-        return {
-            name: self._KNOWN_MATERIALS[name]
-            for name in raw_names
-            if name in self._KNOWN_MATERIALS
-        }
+
+def _extract_json_array(text: str) -> list[dict]:
+    text = text.strip()
+    if text.startswith("```"):
+        text = text.strip("`")
+        newline_index = text.find("\n")
+        if newline_index != -1:
+            text = text[newline_index + 1 :]
+    start, end = text.find("["), text.rfind("]")
+    if start == -1 or end == -1:
+        raise ValueError(f"No JSON array found in legend-reading response: {text!r}")
+    return json.loads(text[start : end + 1])
+
+
+class OpenRouterLegendReader(LegendReadingService):
+    """Real implementation: sends the legend image plus a numbered list of
+    real candidate styles to a vision-capable model via OpenRouter, and
+    resolves the model's chosen `candidateIndex` per row back to the exact
+    candidate values.
+    """
+
+    _ENDPOINT = "https://openrouter.ai/api/v1/chat/completions"
+
+    def __init__(self, api_key: str, model: str) -> None:
+        self._api_key = api_key
+        self._model = model
+
+    def read_legend(self, image_png: bytes, candidates: list[StyleGroup]) -> list[LegendEntry]:
+        image_b64 = base64.b64encode(image_png).decode("ascii")
+        prompt = self._build_prompt(candidates)
+
+        response = httpx.post(
+            self._ENDPOINT,
+            headers={"Authorization": f"Bearer {self._api_key}"},
+            json={
+                "model": self._model,
+                "messages": [
+                    {
+                        "role": "user",
+                        "content": [
+                            {"type": "text", "text": prompt},
+                            {
+                                "type": "image_url",
+                                "image_url": {"url": f"data:image/png;base64,{image_b64}"},
+                            },
+                        ],
+                    }
+                ],
+            },
+            timeout=60.0,
+        )
+        response.raise_for_status()
+        content = response.json()["choices"][0]["message"]["content"]
+        rows = _extract_json_array(content)
+
+        entries: list[LegendEntry] = []
+        for row in rows:
+            index = row.get("candidateIndex")
+            if not isinstance(index, int) or not (0 <= index < len(candidates)):
+                continue
+            candidate = candidates[index]
+            entries.append(
+                LegendEntry(
+                    key=row["key"],
+                    label=row["label"],
+                    colorHex=candidate.colorHex,
+                    linetype=candidate.linetype,
+                    lineweight=candidate.lineweight,
+                )
+            )
+        return entries
+
+    @staticmethod
+    def _build_prompt(candidates: list[StyleGroup]) -> str:
+        candidate_lines = "\n".join(
+            f"{i}: color={c.colorHex} linetype={c.linetype} lineweight={c.lineweight}"
+            for i, c in enumerate(candidates)
+        )
+        return (
+            "You are reading a legend table from an architectural drawing. "
+            "For every row in the legend, identify which of the numbered "
+            "candidate line styles below it visually matches (by color and "
+            "by whether the sample is a solid or a dashed/patterned line). "
+            "Never invent a style that is not in this list — always pick "
+            "one of the given indices.\n\nCandidates:\n"
+            f"{candidate_lines}\n\n"
+            "Respond with ONLY a JSON array, no other text, in this exact "
+            'shape: [{"key": "R1", "label": "...", "candidateIndex": 0}, ...]'
+        )
