@@ -1,7 +1,13 @@
 import ezdxf
+import ezdxf.colors as ezcolors
 import pytest
 
-from app.services.dxf_service import compute_layer_lengths, compute_layer_lengths_from_doc
+from app.services.dxf_service import (
+    compute_layer_lengths,
+    compute_layer_lengths_from_doc,
+    group_measurable_geometry_by_style,
+    iter_with_blocks,
+)
 
 
 def _doc_with_line(layer: str, start: tuple[float, float], end: tuple[float, float]):
@@ -88,3 +94,67 @@ def test_zero_length_line_not_in_result():
     lengths = compute_layer_lengths_from_doc(doc)
     # Layer should not appear in result, not even with 0.0
     assert lengths == {}
+
+
+def test_style_grouping_separates_by_color():
+    doc = ezdxf.new()
+    msp = doc.modelspace()
+    msp.add_line((0, 0), (3, 4), dxfattribs={"layer": "0", "color": 1})  # red, 3-4-5
+    msp.add_line((0, 0), (6, 8), dxfattribs={"layer": "0", "color": 5})  # blue, 6-8-10
+    groups = group_measurable_geometry_by_style(doc)
+    red_rgb = "#%02x%02x%02x" % ezcolors.aci2rgb(1)
+    blue_rgb = "#%02x%02x%02x" % ezcolors.aci2rgb(5)
+    assert groups[(red_rgb, "CONTINUOUS", -3)] == pytest.approx(5.0)
+    assert groups[(blue_rgb, "CONTINUOUS", -3)] == pytest.approx(10.0)
+
+
+def test_style_grouping_separates_same_color_different_linetype():
+    doc = ezdxf.new()
+    doc.linetypes.add("DASHED2", pattern=[0.5, 0.25, -0.25])
+    msp = doc.modelspace()
+    msp.add_line((0, 0), (10, 0), dxfattribs={"layer": "0", "color": 5, "linetype": "CONTINUOUS"})
+    msp.add_line((0, 0), (0, 20), dxfattribs={"layer": "0", "color": 5, "linetype": "DASHED2"})
+    groups = group_measurable_geometry_by_style(doc)
+    blue_rgb = "#%02x%02x%02x" % ezcolors.aci2rgb(5)
+    assert groups[(blue_rgb, "CONTINUOUS", -3)] == pytest.approx(10.0)
+    assert groups[(blue_rgb, "DASHED2", -3)] == pytest.approx(20.0)
+
+
+def test_style_grouping_resolves_bylayer_color_and_linetype():
+    doc = ezdxf.new()
+    doc.linetypes.add("DASHED2", pattern=[0.5, 0.25, -0.25])
+    layer = doc.layers.add("WALLS", color=3, linetype="DASHED2")
+    layer.dxf.lineweight = 35
+    msp = doc.modelspace()
+    # color=256 (BYLAYER) and linetype="BYLAYER" is the ezdxf/DXF default
+    # for a new entity unless overridden explicitly.
+    msp.add_line((0, 0), (5, 0), dxfattribs={"layer": "WALLS"})
+    groups = group_measurable_geometry_by_style(doc)
+    green_rgb = "#%02x%02x%02x" % ezcolors.aci2rgb(3)
+    assert groups == {(green_rgb, "DASHED2", 35): pytest.approx(5.0)}
+
+
+def test_style_grouping_recurses_into_insert_blocks():
+    doc = ezdxf.new()
+    block = doc.blocks.new(name="WALL_UNIT")
+    block.add_line((0, 0), (4, 0), dxfattribs={"color": 1})
+    msp = doc.modelspace()
+    msp.add_blockref("WALL_UNIT", (0, 0))
+    groups = group_measurable_geometry_by_style(doc)
+    red_rgb = "#%02x%02x%02x" % ezcolors.aci2rgb(1)
+    assert groups[(red_rgb, "CONTINUOUS", -3)] == pytest.approx(4.0)
+
+
+def test_iter_with_blocks_yields_top_level_and_nested_entities():
+    doc = ezdxf.new()
+    block = doc.blocks.new(name="UNIT")
+    block.add_line((0, 0), (1, 0))
+    msp = doc.modelspace()
+    top_level = msp.add_circle((0, 0), radius=1)
+    msp.add_blockref("UNIT", (5, 5))
+    entities = list(iter_with_blocks(msp))
+    dxftypes = [e.dxftype() for e in entities]
+    assert dxftypes.count("CIRCLE") == 1
+    assert dxftypes.count("LINE") == 1
+    assert dxftypes.count("INSERT") == 1
+    assert top_level in entities
