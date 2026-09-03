@@ -1,24 +1,69 @@
 from __future__ import annotations
 
+import json
 import tempfile
 from pathlib import Path
 
 from ezdxf import DXFStructureError
-from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
+from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
+from pydantic import TypeAdapter, ValidationError
 
 from app.config import settings
-from app.models import LayerResult, UploadResponse
+from app.models import LegendEntry, LegendProposalResponse, StyleGroup, UploadResponse
 from app.services.auth_service import verify_token
-from app.services.dxf_service import compute_layer_lengths
-from app.services.llm_service import LayerNamingService, StubLayerNamingService
+from app.services.dxf_service import group_measurable_geometry_by_style
+from app.services.legend_matching_service import match_geometry_to_legend
+from app.services.legend_service import render_preview_png
+from app.services.llm_service import LegendReadingService, OpenRouterLegendReader
+
+import ezdxf
 
 router = APIRouter()
 
-_naming_service: LayerNamingService = StubLayerNamingService()
+_legend_reader: LegendReadingService = OpenRouterLegendReader(
+    api_key=settings.openrouter_api_key, model=settings.legend_model
+)
+
+_LEGEND_LIST_ADAPTER = TypeAdapter(list[LegendEntry])
+
+
+@router.post("/legend", response_model=LegendProposalResponse, dependencies=[Depends(verify_token)])
+async def read_legend(file: UploadFile = File(...)) -> LegendProposalResponse:
+    doc = await _read_dxf_upload(file)
+
+    style_groups = group_measurable_geometry_by_style(doc)
+    if not style_groups:
+        raise HTTPException(status_code=400, detail="No measurable geometry found in legend DXF")
+
+    candidates = [
+        StyleGroup(colorHex=color, linetype=linetype, lineweight=lineweight, linearMeters=round(total, 3))
+        for (color, linetype, lineweight), total in style_groups.items()
+    ]
+    image_png = render_preview_png(doc)
+
+    try:
+        entries = _legend_reader.read_legend(image_png, candidates)
+    except Exception as exc:
+        raise HTTPException(status_code=502, detail="Legend reading service failed") from exc
+
+    return LegendProposalResponse(entries=entries)
 
 
 @router.post("/upload", response_model=UploadResponse, dependencies=[Depends(verify_token)])
-async def upload_dxf(file: UploadFile = File(...)) -> UploadResponse:
+async def upload_dxf(file: UploadFile = File(...), legend: str = Form(...)) -> UploadResponse:
+    try:
+        legend_entries = _LEGEND_LIST_ADAPTER.validate_python(json.loads(legend))
+    except (json.JSONDecodeError, ValidationError, TypeError) as exc:
+        raise HTTPException(status_code=400, detail="Invalid legend payload") from exc
+
+    doc = await _read_dxf_upload(file)
+    style_groups = group_measurable_geometry_by_style(doc)
+    matched, undetermined = match_geometry_to_legend(style_groups, legend_entries, settings.color_match_tolerance)
+
+    return UploadResponse(matched=matched, undetermined=undetermined)
+
+
+async def _read_dxf_upload(file: UploadFile):
     if not file.filename or not file.filename.lower().endswith(".dxf"):
         raise HTTPException(status_code=400, detail="Only .dxf files are supported")
 
@@ -26,52 +71,19 @@ async def upload_dxf(file: UploadFile = File(...)) -> UploadResponse:
     max_bytes = settings.max_upload_size_mb * 1024 * 1024
     if len(contents) > max_bytes:
         raise HTTPException(
-            status_code=413,
-            detail=f"File exceeds maximum size of {settings.max_upload_size_mb}MB",
+            status_code=413, detail=f"File exceeds maximum size of {settings.max_upload_size_mb}MB"
         )
 
     tmp_path = _write_temp_dxf(contents)
     try:
-        lengths = compute_layer_lengths(tmp_path)
+        return ezdxf.readfile(str(tmp_path))
     except (DXFStructureError, OSError, ValueError) as exc:
         raise HTTPException(status_code=400, detail="Uploaded file is not a valid DXF") from exc
     finally:
         tmp_path.unlink(missing_ok=True)
-
-    return _build_response(lengths)
 
 
 def _write_temp_dxf(contents: bytes) -> Path:
     with tempfile.NamedTemporaryFile(suffix=".dxf", delete=False) as tmp:
         tmp.write(contents)
         return Path(tmp.name)
-
-
-def _build_response(lengths: dict[str, float]) -> UploadResponse:
-    raw_names = list(lengths.keys())
-
-    try:
-        material_map = _naming_service.map_layer_names(raw_names)
-    except Exception:
-        # A naming-service failure must never block the measurement
-        # result: degrade to "everything undetermined" instead of
-        # raising, since the linear-meter data is still valid.
-        material_map = {}
-
-    layers: list[LayerResult] = []
-    undetermined: list[str] = []
-
-    for raw_name, meters in lengths.items():
-        material_name = material_map.get(raw_name)
-        if material_name is None:
-            material_name = raw_name
-            undetermined.append(raw_name)
-        layers.append(
-            LayerResult(
-                rawLayerName=raw_name,
-                materialName=material_name,
-                linearMeters=round(meters, 3),
-            )
-        )
-
-    return UploadResponse(layers=layers, undeterminedLayers=undetermined)

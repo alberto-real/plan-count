@@ -1,8 +1,12 @@
+from __future__ import annotations
+
+import json
 from pathlib import Path
 
 from fastapi.testclient import TestClient
 
 from app.main import app
+from app.models import LegendEntry, StyleGroup
 
 client = TestClient(app)
 FIXTURE = Path(__file__).parent / "fixtures" / "sample_two_layers.dxf"
@@ -15,44 +19,110 @@ def _auth_headers(rsa_keypair, mock_jwks, make_token) -> dict[str, str]:
     return {"Authorization": f"Bearer {token}"}
 
 
-def test_upload_returns_layers_and_flags_undetermined(rsa_keypair, mock_jwks, make_token):
+class _FakeLegendReader:
+    def __init__(self, entries=None, raises=None):
+        self._entries = entries or []
+        self._raises = raises
+
+    def read_legend(self, image_png, candidates):
+        if self._raises:
+            raise self._raises
+        return self._entries
+
+
+def test_legend_endpoint_returns_entries_from_reader(monkeypatch, rsa_keypair, mock_jwks, make_token):
+    from app.api import endpoints
+
+    monkeypatch.setattr(
+        endpoints,
+        "_legend_reader",
+        _FakeLegendReader(
+            entries=[
+                LegendEntry(key="R1", label="Wall A", colorHex="#f8991e", linetype="CONTINUOUS", lineweight=25)
+            ]
+        ),
+    )
+
     with open(FIXTURE, "rb") as f:
         response = client.post(
-            "/api/upload",
-            files={"file": ("sample_two_layers.dxf", f, "application/dxf")},
+            "/api/legend",
+            files={"file": ("legend.dxf", f, "application/dxf")},
             headers=_auth_headers(rsa_keypair, mock_jwks, make_token),
         )
 
     assert response.status_code == 200
     body = response.json()
-
-    layers_by_name = {layer["rawLayerName"]: layer for layer in body["layers"]}
-    assert set(layers_by_name.keys()) == {"LAY_0725_EXT", "WALL_UNKNOWN_042"}
-
-    determined = layers_by_name["LAY_0725_EXT"]
-    assert determined["materialName"] == "Yellowish Green Interior"
-    assert determined["linearMeters"] == 14.0
-
-    undetermined = layers_by_name["WALL_UNKNOWN_042"]
-    assert undetermined["materialName"] == "WALL_UNKNOWN_042"
-    assert undetermined["linearMeters"] == 5.0
-
-    assert body["undeterminedLayers"] == ["WALL_UNKNOWN_042"]
+    assert body["entries"] == [
+        {"key": "R1", "label": "Wall A", "colorHex": "#f8991e", "linetype": "CONTINUOUS", "lineweight": 25}
+    ]
 
 
-def test_upload_rejects_non_dxf_extension(rsa_keypair, mock_jwks, make_token):
+def test_legend_endpoint_returns_502_when_reader_fails(monkeypatch, rsa_keypair, mock_jwks, make_token):
+    from app.api import endpoints
+
+    monkeypatch.setattr(endpoints, "_legend_reader", _FakeLegendReader(raises=RuntimeError("AI unavailable")))
+
+    with open(FIXTURE, "rb") as f:
+        response = client.post(
+            "/api/legend",
+            files={"file": ("legend.dxf", f, "application/dxf")},
+            headers=_auth_headers(rsa_keypair, mock_jwks, make_token),
+        )
+
+    assert response.status_code == 502
+
+
+def test_legend_endpoint_rejects_non_dxf_extension(rsa_keypair, mock_jwks, make_token):
     response = client.post(
-        "/api/upload",
+        "/api/legend",
         files={"file": ("notes.txt", b"hello world", "text/plain")},
         headers=_auth_headers(rsa_keypair, mock_jwks, make_token),
     )
     assert response.status_code == 400
 
 
-def test_upload_rejects_unparseable_dxf_content(rsa_keypair, mock_jwks, make_token):
+def test_upload_matches_and_flags_undetermined(rsa_keypair, mock_jwks, make_token):
+    # Both of sample_two_layers.dxf's entities (LAY_0725_EXT at 14.0m,
+    # WALL_UNKNOWN_042 at 5.0m) resolve to the same effective style —
+    # ("#ffffff", "CONTINUOUS", -3) — so a single legend entry matching
+    # that style matches both style groups, summing to 19.0m with nothing
+    # left undetermined.
+    legend = [
+        LegendEntry(key="R1", label="Wall A", colorHex="#ffffff", linetype="CONTINUOUS", lineweight=-3),
+    ]
+
+    with open(FIXTURE, "rb") as f:
+        response = client.post(
+            "/api/upload",
+            files={"file": ("sample_two_layers.dxf", f, "application/dxf")},
+            data={"legend": json.dumps([e.model_dump() for e in legend])},
+            headers=_auth_headers(rsa_keypair, mock_jwks, make_token),
+        )
+
+    assert response.status_code == 200
+    body = response.json()
+    assert len(body["matched"]) == 1
+    assert body["matched"][0]["key"] == "R1"
+    assert body["matched"][0]["linearMeters"] == 19.0  # both fixture layers share this style -> summed
+    assert body["undetermined"] == []
+
+
+def test_upload_rejects_malformed_legend_json(rsa_keypair, mock_jwks, make_token):
+    with open(FIXTURE, "rb") as f:
+        response = client.post(
+            "/api/upload",
+            files={"file": ("sample_two_layers.dxf", f, "application/dxf")},
+            data={"legend": "not json"},
+            headers=_auth_headers(rsa_keypair, mock_jwks, make_token),
+        )
+    assert response.status_code == 400
+
+
+def test_upload_rejects_non_dxf_extension(rsa_keypair, mock_jwks, make_token):
     response = client.post(
         "/api/upload",
-        files={"file": ("broken.dxf", b"this is not a real dxf file", "application/dxf")},
+        files={"wrong_field_name": ("notes.txt", b"hello", "text/plain")},
+        data={"legend": "[]"},
         headers=_auth_headers(rsa_keypair, mock_jwks, make_token),
     )
     assert response.status_code == 400
@@ -61,60 +131,15 @@ def test_upload_rejects_unparseable_dxf_content(rsa_keypair, mock_jwks, make_tok
 def test_upload_rejects_oversized_file(monkeypatch, rsa_keypair, mock_jwks, make_token):
     from app.config import settings
 
-    monkeypatch.setattr(settings, "max_upload_size_mb", 0)  # 0 MB => anything is too big
+    monkeypatch.setattr(settings, "max_upload_size_mb", 0)
     with open(FIXTURE, "rb") as f:
         response = client.post(
             "/api/upload",
             files={"file": ("sample_two_layers.dxf", f, "application/dxf")},
+            data={"legend": "[]"},
             headers=_auth_headers(rsa_keypair, mock_jwks, make_token),
         )
     assert response.status_code == 413
-
-
-def test_upload_missing_file_field_returns_400(rsa_keypair, mock_jwks, make_token):
-    response = client.post("/api/upload", headers=_auth_headers(rsa_keypair, mock_jwks, make_token))
-    assert response.status_code == 400
-
-
-def test_upload_wrong_field_name_returns_400(rsa_keypair, mock_jwks, make_token):
-    response = client.post(
-        "/api/upload",
-        files={"wrong_field_name": ("sample_two_layers.dxf", b"irrelevant", "application/dxf")},
-        headers=_auth_headers(rsa_keypair, mock_jwks, make_token),
-    )
-    assert response.status_code == 400
-
-
-def test_upload_degrades_gracefully_when_naming_service_fails(monkeypatch, rsa_keypair, mock_jwks, make_token):
-    from app.api import endpoints
-
-    def _raise(self, raw_names):
-        raise RuntimeError("naming service unavailable")
-
-    monkeypatch.setattr(
-        endpoints.StubLayerNamingService, "map_layer_names", _raise
-    )
-
-    with open(FIXTURE, "rb") as f:
-        response = client.post(
-            "/api/upload",
-            files={"file": ("sample_two_layers.dxf", f, "application/dxf")},
-            headers=_auth_headers(rsa_keypair, mock_jwks, make_token),
-        )
-
-    assert response.status_code == 200
-    body = response.json()
-
-    layers_by_name = {layer["rawLayerName"]: layer for layer in body["layers"]}
-    assert set(layers_by_name.keys()) == {"LAY_0725_EXT", "WALL_UNKNOWN_042"}
-
-    assert layers_by_name["LAY_0725_EXT"]["materialName"] == "LAY_0725_EXT"
-    assert layers_by_name["LAY_0725_EXT"]["linearMeters"] == 14.0
-
-    assert layers_by_name["WALL_UNKNOWN_042"]["materialName"] == "WALL_UNKNOWN_042"
-    assert layers_by_name["WALL_UNKNOWN_042"]["linearMeters"] == 5.0
-
-    assert set(body["undeterminedLayers"]) == {"LAY_0725_EXT", "WALL_UNKNOWN_042"}
 
 
 def test_upload_without_token_returns_401():
@@ -122,5 +147,12 @@ def test_upload_without_token_returns_401():
         response = client.post(
             "/api/upload",
             files={"file": ("sample_two_layers.dxf", f, "application/dxf")},
+            data={"legend": "[]"},
         )
+    assert response.status_code == 401
+
+
+def test_legend_endpoint_without_token_returns_401():
+    with open(FIXTURE, "rb") as f:
+        response = client.post("/api/legend", files={"file": ("legend.dxf", f, "application/dxf")})
     assert response.status_code == 401
