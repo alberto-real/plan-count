@@ -7,6 +7,7 @@ from pathlib import Path
 from ezdxf import DXFStructureError
 from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
 from pydantic import TypeAdapter, ValidationError
+from starlette.concurrency import run_in_threadpool
 
 from app.config import settings
 from app.models import LegendEntry, LegendProposalResponse, StyleGroup, UploadResponse
@@ -39,10 +40,9 @@ async def read_legend(file: UploadFile = File(...)) -> LegendProposalResponse:
         StyleGroup(colorHex=color, linetype=linetype, lineweight=lineweight, linearMeters=round(total, 3))
         for (color, linetype, lineweight), total in style_groups.items()
     ]
-    image_png = render_preview_png(doc)
-
     try:
-        entries = _legend_reader.read_legend(image_png, candidates)
+        image_png = await run_in_threadpool(render_preview_png, doc)
+        entries = await run_in_threadpool(_legend_reader.read_legend, image_png, candidates)
     except Exception as exc:
         raise HTTPException(status_code=502, detail="Legend reading service failed") from exc
 

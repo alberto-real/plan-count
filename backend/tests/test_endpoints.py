@@ -107,6 +107,47 @@ def test_upload_matches_and_flags_undetermined(rsa_keypair, mock_jwks, make_toke
     assert body["undetermined"] == []
 
 
+def test_upload_flags_undetermined_when_legend_style_does_not_match(rsa_keypair, mock_jwks, make_token):
+    # sample_two_layers.dxf's entities resolve to a single effective style —
+    # ("#ffffff", "CONTINUOUS", -3), summing to 19.0m. A legend entry whose
+    # linetype/lineweight don't match that style leaves it unmatched, so it
+    # must be reported as undetermined rather than silently dropped.
+    legend = [
+        LegendEntry(key="R1", label="Wall A", colorHex="#ffffff", linetype="DASHED", lineweight=25),
+    ]
+
+    with open(FIXTURE, "rb") as f:
+        response = client.post(
+            "/api/upload",
+            files={"file": ("sample_two_layers.dxf", f, "application/dxf")},
+            data={"legend": json.dumps([e.model_dump() for e in legend])},
+            headers=_auth_headers(rsa_keypair, mock_jwks, make_token),
+        )
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["matched"] == []
+    assert body["undetermined"] == [
+        {"colorHex": "#ffffff", "linetype": "CONTINUOUS", "lineweight": -3, "linearMeters": 19.0}
+    ]
+
+
+def test_upload_rejects_malformed_legend_color_hex(rsa_keypair, mock_jwks, make_token):
+    legend = [
+        {"key": "R1", "label": "Wall A", "colorHex": "not-a-hex", "linetype": "CONTINUOUS", "lineweight": -3},
+    ]
+
+    with open(FIXTURE, "rb") as f:
+        response = client.post(
+            "/api/upload",
+            files={"file": ("sample_two_layers.dxf", f, "application/dxf")},
+            data={"legend": json.dumps(legend)},
+            headers=_auth_headers(rsa_keypair, mock_jwks, make_token),
+        )
+
+    assert response.status_code == 400
+
+
 def test_upload_rejects_malformed_legend_json(rsa_keypair, mock_jwks, make_token):
     with open(FIXTURE, "rb") as f:
         response = client.post(

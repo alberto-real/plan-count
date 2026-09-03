@@ -1,8 +1,8 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
 class StyleGroup(BaseModel):
-    colorHex: str
+    colorHex: str = Field(pattern=r"^#[0-9a-fA-F]{6}$")
     linetype: str
     lineweight: int
     linearMeters: float
@@ -11,7 +11,7 @@ class StyleGroup(BaseModel):
 class LegendEntry(BaseModel):
     key: str
     label: str
-    colorHex: str
+    colorHex: str = Field(pattern=r"^#[0-9a-fA-F]{6}$")
     linetype: str
     lineweight: int
 

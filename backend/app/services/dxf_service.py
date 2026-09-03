@@ -1,11 +1,14 @@
 from __future__ import annotations
 
+import logging
 from pathlib import Path
 
 import ezdxf
 import ezdxf.colors as ezcolors
 import ezdxf.lldxf.const
 from ezdxf.document import Drawing
+
+logger = logging.getLogger(__name__)
 
 _LENGTH_ENTITY_TYPES = {"LINE", "LWPOLYLINE"}
 
@@ -100,6 +103,11 @@ def iter_with_blocks(entities, depth: int = 0, max_depth: int = 3):
             try:
                 nested = list(entity.virtual_entities())
             except Exception:
+                logger.warning(
+                    "virtual_entities() failed for INSERT %r; nested geometry skipped",
+                    entity.dxf.handle,
+                    exc_info=True,
+                )
                 nested = []
             yield from iter_with_blocks(nested, depth + 1, max_depth)
 
