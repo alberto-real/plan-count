@@ -1,104 +1,97 @@
 <div class="mx-auto max-w-4xl space-y-6 p-6">
-  <div class="flex flex-wrap items-end gap-4">
-    <div>
-      <label for="dxf-file" class="block text-sm font-medium text-gray-700">{{ 'planCalculator.fileLabel' | transloco }}</label>
-      <input
-        id="dxf-file"
-        type="file"
-        accept=".dxf"
-        (change)="onFileSelected($event)"
-        class="mt-1 block w-full text-sm text-gray-700"
-      />
-    </div>
-    <div>
-      <label for="height-cm" class="block text-sm font-medium text-gray-700">{{ 'planCalculator.heightLabel' | transloco }}</label>
-      <input
-        id="height-cm"
-        type="number"
-        step="0.1"
-        min="0"
-        [value]="heightCm()"
-        (input)="onHeightChange($event)"
-        class="mt-1 block w-32 rounded border border-gray-300 px-2 py-1 text-sm"
-      />
-    </div>
-    <button
-      type="button"
-      (click)="onSubmit()"
-      [disabled]="!selectedFile() || status() === 'uploading'"
-      class="rounded bg-blue-600 px-4 py-2 text-sm font-medium text-white disabled:opacity-50"
-    >
-      {{ 'planCalculator.submitButton' | transloco }}
-    </button>
-  </div>
-
-  @if (status() === 'uploading') {
-    <p class="text-sm text-gray-500">{{ 'planCalculator.uploading' | transloco }}</p>
-  }
-
-  @if (status() === 'error') {
-    <div class="flex items-start justify-between gap-4 rounded border border-red-300 bg-red-50 px-4 py-3 text-sm text-red-700">
-      <span>{{ errorMessage() }}</span>
+  @if (!legend()) {
+    <app-legend-step (legendConfirmed)="onLegendConfirmed($event)" />
+  } @else {
+    <div class="flex flex-wrap items-end gap-4">
+      <div>
+        <label for="dxf-file" class="block text-sm font-medium text-gray-700">{{ 'planCalculator.fileLabel' | transloco }}</label>
+        <input
+          id="dxf-file"
+          type="file"
+          accept=".dxf"
+          (change)="onFileSelected($event)"
+          class="mt-1 block w-full text-sm text-gray-700"
+        />
+      </div>
+      <div>
+        <label for="height-cm" class="block text-sm font-medium text-gray-700">{{ 'planCalculator.heightLabel' | transloco }}</label>
+        <input
+          id="height-cm"
+          type="number"
+          step="0.1"
+          min="0"
+          [value]="heightCm()"
+          (input)="onHeightChange($event)"
+          class="mt-1 block w-32 rounded border border-gray-300 px-2 py-1 text-sm"
+        />
+      </div>
       <button
         type="button"
-        data-testid="dismiss-error"
-        [attr.aria-label]="'planCalculator.dismissError' | transloco"
-        (click)="dismissError()"
-        class="text-red-700 hover:text-red-900"
+        (click)="onSubmit()"
+        [disabled]="!selectedFile() || status() === 'uploading'"
+        class="rounded bg-blue-600 px-4 py-2 text-sm font-medium text-white disabled:opacity-50"
       >
-        ×
+        {{ 'planCalculator.submitButton' | transloco }}
       </button>
     </div>
-  }
 
-  @if (status() === 'success') {
-    <table class="w-full text-left text-sm">
-      <thead>
-        <tr class="border-b border-gray-200">
-          <th class="py-2 pr-4 font-medium text-gray-600">{{ 'planCalculator.tableLayer' | transloco }}</th>
-          <th class="py-2 pr-4 font-medium text-gray-600">{{ 'planCalculator.tableMaterial' | transloco }}</th>
-          <th class="py-2 pr-4 font-medium text-gray-600">{{ 'planCalculator.tableLinearMeters' | transloco }}</th>
-          <th class="py-2 pr-4 font-medium text-gray-600">{{ 'planCalculator.tableArea' | transloco }}</th>
-        </tr>
-      </thead>
-      <tbody>
-        @for (row of rows(); track row.rawLayerName) {
-          <tr
-            [class.border-l-4]="row.isUndetermined"
-            [class.border-amber-400]="row.isUndetermined"
-            class="border-b border-gray-100"
-          >
-            <td class="py-2 pr-4 font-mono text-xs">{{ row.rawLayerName }}</td>
-            <td class="py-2 pr-4">
-              @if (row.isUndetermined) {
-                @if (newMaterialRowKey() === row.rawLayerName) {
-                  <input
-                    type="text"
-                    [placeholder]="'planCalculator.newMaterialPlaceholder' | transloco"
-                    (keydown.enter)="onNewMaterialConfirmed(row.rawLayerName, $event)"
-                    (blur)="onNewMaterialConfirmed(row.rawLayerName, $event)"
-                    class="rounded border border-gray-300 px-2 py-1 text-sm"
-                  />
-                } @else {
-                  <select
-                    (change)="onMaterialSelectChange(row.rawLayerName, $event)"
-                    class="rounded border border-gray-300 px-2 py-1 text-sm"
-                  >
-                    @for (material of knownMaterials(); track material) {
-                      <option [value]="material" [selected]="material === row.effectiveMaterial">{{ material }}</option>
-                    }
-                    <option [value]="NEW_MATERIAL_OPTION">{{ 'planCalculator.newMaterialOption' | transloco }}</option>
-                  </select>
-                }
-              } @else {
-                {{ row.effectiveMaterial }}
-              }
-            </td>
-            <td class="py-2 pr-4">{{ row.linearMeters | number: '1.2-2' }}</td>
-            <td class="py-2 pr-4">{{ row.areaM2 | number: '1.2-2' }}</td>
+    @if (status() === 'uploading') {
+      <p class="text-sm text-gray-500">{{ 'planCalculator.uploading' | transloco }}</p>
+    }
+
+    @if (status() === 'error') {
+      <div class="flex items-start justify-between gap-4 rounded border border-red-300 bg-red-50 px-4 py-3 text-sm text-red-700">
+        <span>{{ errorMessage() }}</span>
+        <button
+          type="button"
+          data-testid="dismiss-error"
+          [attr.aria-label]="'planCalculator.dismissError' | transloco"
+          (click)="dismissError()"
+          class="text-red-700 hover:text-red-900"
+        >
+          ×
+        </button>
+      </div>
+    }
+
+    @if (status() === 'success') {
+      <table class="w-full text-left text-sm">
+        <thead>
+          <tr class="border-b border-gray-200">
+            <th class="py-2 pr-4 font-medium text-gray-600">{{ 'planCalculator.tableKey' | transloco }}</th>
+            <th class="py-2 pr-4 font-medium text-gray-600">{{ 'planCalculator.tableMaterial' | transloco }}</th>
+            <th class="py-2 pr-4 font-medium text-gray-600">{{ 'planCalculator.tableLinearMeters' | transloco }}</th>
+            <th class="py-2 pr-4 font-medium text-gray-600">{{ 'planCalculator.tableArea' | transloco }}</th>
           </tr>
-        }
-      </tbody>
-    </table>
+        </thead>
+        <tbody>
+          @for (row of matchedRows(); track row.key) {
+            <tr class="border-b border-gray-100">
+              <td class="py-2 pr-4 font-mono text-xs">{{ row.key }}</td>
+              <td class="py-2 pr-4">{{ row.label }}</td>
+              <td class="py-2 pr-4">{{ row.linearMeters | number: '1.2-2' }}</td>
+              <td class="py-2 pr-4">{{ row.areaM2 | number: '1.2-2' }}</td>
+            </tr>
+          }
+        </tbody>
+      </table>
+
+      @if (undeterminedGroups().length > 0) {
+        <div class="rounded border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+          <p class="font-medium">{{ 'planCalculator.undeterminedTitle' | transloco }}</p>
+          <ul class="mt-2 space-y-1">
+            @for (group of undeterminedGroups(); track group.colorHex + group.linetype + group.lineweight) {
+              <li class="flex items-center gap-2">
+                <span
+                  class="inline-block h-3 w-6 rounded border border-gray-300"
+                  [style.background-color]="group.colorHex"
+                ></span>
+                {{ group.linetype }} · {{ group.linearMeters | number: '1.2-2' }} m
+              </li>
+            }
+          </ul>
+        </div>
+      }
+    }
   }
 </div>

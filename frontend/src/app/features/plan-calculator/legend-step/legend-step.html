@@ -1,0 +1,82 @@
+<div class="mx-auto max-w-4xl space-y-4 p-6">
+  <h2 class="text-lg font-semibold text-gray-900">{{ 'legendStep.title' | transloco }}</h2>
+
+  <div>
+    <label for="legend-file" class="block text-sm font-medium text-gray-700">{{ 'legendStep.fileLabel' | transloco }}</label>
+    <input
+      id="legend-file"
+      type="file"
+      accept=".dxf"
+      (change)="onFileSelected($event)"
+      class="mt-1 block w-full text-sm text-gray-700"
+    />
+  </div>
+
+  @if (status() === 'reading') {
+    <p class="text-sm text-gray-500">{{ 'legendStep.reading' | transloco }}</p>
+  }
+
+  @if (status() === 'error') {
+    <div class="flex items-start justify-between gap-4 rounded border border-red-300 bg-red-50 px-4 py-3 text-sm text-red-700">
+      <span>{{ errorMessage() }}</span>
+      <button
+        type="button"
+        data-testid="legend-dismiss-error"
+        [attr.aria-label]="'legendStep.dismissError' | transloco"
+        (click)="dismissError()"
+        class="text-red-700 hover:text-red-900"
+      >
+        ×
+      </button>
+    </div>
+  }
+
+  @if (status() === 'ready') {
+    <table class="w-full text-left text-sm">
+      <thead>
+        <tr class="border-b border-gray-200">
+          <th class="py-2 pr-4 font-medium text-gray-600">{{ 'legendStep.tableColor' | transloco }}</th>
+          <th class="py-2 pr-4 font-medium text-gray-600">{{ 'legendStep.tableKey' | transloco }}</th>
+          <th class="py-2 pr-4 font-medium text-gray-600">{{ 'legendStep.tableLabel' | transloco }}</th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (entry of entries(); track $index) {
+          <tr class="border-b border-gray-100">
+            <td class="py-2 pr-4">
+              <span
+                class="inline-block h-4 w-8 rounded border border-gray-300"
+                [style.background-color]="entry.colorHex"
+                [attr.title]="entry.linetype + ' / ' + entry.lineweight"
+              ></span>
+            </td>
+            <td class="py-2 pr-4">
+              <input
+                type="text"
+                [value]="entry.key"
+                (change)="onKeyChange($index, $event)"
+                class="w-20 rounded border border-gray-300 px-2 py-1 text-sm"
+              />
+            </td>
+            <td class="py-2 pr-4">
+              <input
+                type="text"
+                [value]="entry.label"
+                (change)="onLabelChange($index, $event)"
+                class="w-full rounded border border-gray-300 px-2 py-1 text-sm"
+              />
+            </td>
+          </tr>
+        }
+      </tbody>
+    </table>
+
+    <button
+      type="button"
+      (click)="onConfirm()"
+      class="rounded bg-blue-600 px-4 py-2 text-sm font-medium text-white"
+    >
+      {{ 'legendStep.confirmButton' | transloco }}
+    </button>
+  }
+</div>

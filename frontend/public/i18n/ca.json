@@ -13,18 +13,28 @@
     "title": "Inicia sessió",
     "button": "Inicia sessió amb Keycloak"
   },
+  "legendStep": {
+    "title": "Pas 1: llegir la llegenda",
+    "fileLabel": "Fitxer DXF de la llegenda",
+    "reading": "Llegint la llegenda...",
+    "dismissError": "Tanca",
+    "genericError": "S'ha produït un error inesperat en llegir la llegenda.",
+    "tableColor": "Color",
+    "tableKey": "Clau",
+    "tableLabel": "Etiqueta",
+    "confirmButton": "Confirma la llegenda i continua"
+  },
   "planCalculator": {
     "fileLabel": "Fitxer DXF",
     "heightLabel": "Alçada (cm)",
     "submitButton": "Analitza",
     "uploading": "Analitzant el fitxer...",
     "dismissError": "Tanca",
-    "tableLayer": "Capa",
+    "tableKey": "Clau",
     "tableMaterial": "Material",
     "tableLinearMeters": "Metres lineals",
     "tableArea": "Àrea (m²)",
-    "newMaterialPlaceholder": "Nom del material nou",
-    "newMaterialOption": "+ Nou material",
+    "undeterminedTitle": "Geometria no coincident (no a la llegenda)",
     "genericError": "S'ha produït un error inesperat."
   }
 }

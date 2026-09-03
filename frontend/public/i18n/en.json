@@ -13,18 +13,28 @@
     "title": "Log in",
     "button": "Log in with Keycloak"
   },
+  "legendStep": {
+    "title": "Step 1: read the legend",
+    "fileLabel": "Legend DXF file",
+    "reading": "Reading the legend...",
+    "dismissError": "Close",
+    "genericError": "An unexpected error occurred while reading the legend.",
+    "tableColor": "Color",
+    "tableKey": "Key",
+    "tableLabel": "Label",
+    "confirmButton": "Confirm legend and continue"
+  },
   "planCalculator": {
     "fileLabel": "DXF file",
     "heightLabel": "Height (cm)",
     "submitButton": "Analyze",
     "uploading": "Analyzing the file...",
     "dismissError": "Close",
-    "tableLayer": "Layer",
+    "tableKey": "Key",
     "tableMaterial": "Material",
     "tableLinearMeters": "Linear meters",
     "tableArea": "Area (m²)",
-    "newMaterialPlaceholder": "New material name",
-    "newMaterialOption": "+ New material",
+    "undeterminedTitle": "Unmatched geometry (not in the legend)",
     "genericError": "An unexpected error occurred."
   }
 }

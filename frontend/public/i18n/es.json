@@ -13,18 +13,28 @@
     "title": "Iniciar sesión",
     "button": "Iniciar sesión con Keycloak"
   },
+  "legendStep": {
+    "title": "Paso 1: leer la leyenda",
+    "fileLabel": "Archivo DXF de la leyenda",
+    "reading": "Leyendo la leyenda...",
+    "dismissError": "Cerrar",
+    "genericError": "Se ha producido un error inesperado al leer la leyenda.",
+    "tableColor": "Color",
+    "tableKey": "Clave",
+    "tableLabel": "Etiqueta",
+    "confirmButton": "Confirmar leyenda y continuar"
+  },
   "planCalculator": {
     "fileLabel": "Archivo DXF",
     "heightLabel": "Altura (cm)",
     "submitButton": "Analizar",
     "uploading": "Analizando el archivo...",
     "dismissError": "Cerrar",
-    "tableLayer": "Capa",
+    "tableKey": "Clave",
     "tableMaterial": "Material",
     "tableLinearMeters": "Metros lineales",
     "tableArea": "Área (m²)",
-    "newMaterialPlaceholder": "Nombre del material nuevo",
-    "newMaterialOption": "+ Nuevo material",
+    "undeterminedTitle": "Geometría sin coincidencia (no está en la leyenda)",
     "genericError": "Se ha producido un error inesperado."
   }
 }

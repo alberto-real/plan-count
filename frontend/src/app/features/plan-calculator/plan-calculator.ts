@@ -1,58 +1,56 @@
 import { Component, computed, inject, signal } from '@angular/core';
 import { DecimalPipe } from '@angular/common';
 import { TranslocoModule, TranslocoService } from '@jsverse/transloco';
-import { UploadResponse } from './models';
+import { LegendEntry, MatchedEntry, StyleGroup, UploadResponse } from './models';
 import { UploadService } from './upload.service';
+import { LegendStep } from './legend-step/legend-step';
 
 type Status = 'idle' | 'uploading' | 'error' | 'success';
 
 export interface PlanRow {
-  rawLayerName: string;
+  key: string;
+  label: string;
+  colorHex: string;
   linearMeters: number;
-  effectiveMaterial: string;
-  isUndetermined: boolean;
   areaM2: number;
 }
 
 @Component({
   selector: 'app-plan-calculator',
-  imports: [DecimalPipe, TranslocoModule],
+  imports: [DecimalPipe, TranslocoModule, LegendStep],
   templateUrl: './plan-calculator.html',
 })
 export class PlanCalculator {
   private readonly uploadService = inject(UploadService);
   private readonly translocoService = inject(TranslocoService);
 
-  readonly NEW_MATERIAL_OPTION = '__new__';
-
+  readonly legend = signal<LegendEntry[] | null>(null);
   readonly selectedFile = signal<File | null>(null);
   readonly status = signal<Status>('idle');
   readonly errorMessage = signal<string | null>(null);
   readonly result = signal<UploadResponse | null>(null);
   readonly heightCm = signal<number>(250);
-  readonly materialOverrides = signal<Record<string, string>>({});
-  readonly newMaterialRowKey = signal<string | null>(null);
 
-  readonly rows = computed<PlanRow[]>(() => {
+  readonly matchedRows = computed<PlanRow[]>(() => {
     const current = this.result();
     if (!current) {
       return [];
     }
-    const overrides = this.materialOverrides();
     const heightMeters = this.heightCm() / 100;
-    return current.layers.map((layer) => ({
-      rawLayerName: layer.rawLayerName,
-      linearMeters: layer.linearMeters,
-      effectiveMaterial: overrides[layer.rawLayerName] ?? layer.materialName,
-      isUndetermined: current.undeterminedLayers.includes(layer.rawLayerName),
-      areaM2: layer.linearMeters * heightMeters,
+    return current.matched.map((entry: MatchedEntry) => ({
+      key: entry.key,
+      label: entry.label,
+      colorHex: entry.colorHex,
+      linearMeters: entry.linearMeters,
+      areaM2: entry.linearMeters * heightMeters,
     }));
   });
 
-  readonly knownMaterials = computed<string[]>(() => {
-    const names = this.rows().map((row) => row.effectiveMaterial);
-    return [...new Set(names)].sort((a, b) => a.localeCompare(b));
-  });
+  readonly undeterminedGroups = computed<StyleGroup[]>(() => this.result()?.undetermined ?? []);
+
+  onLegendConfirmed(legend: LegendEntry[]): void {
+    this.legend.set(legend);
+  }
 
   onFileSelected(event: Event): void {
     const input = event.target as HTMLInputElement;
@@ -65,44 +63,19 @@ export class PlanCalculator {
     this.heightCm.set(Number.isFinite(value) ? value : 0);
   }
 
-  onAssignMaterial(rawLayerName: string, materialName: string): void {
-    const trimmed = materialName.trim();
-    if (!trimmed) {
-      return;
-    }
-    this.materialOverrides.update((current) => ({ ...current, [rawLayerName]: trimmed }));
-  }
-
-  onMaterialSelectChange(rawLayerName: string, event: Event): void {
-    const value = (event.target as HTMLSelectElement).value;
-    if (value === this.NEW_MATERIAL_OPTION) {
-      this.newMaterialRowKey.set(rawLayerName);
-      return;
-    }
-    this.newMaterialRowKey.set(null);
-    this.onAssignMaterial(rawLayerName, value);
-  }
-
-  onNewMaterialConfirmed(rawLayerName: string, event: Event): void {
-    const value = (event.target as HTMLInputElement).value;
-    this.onAssignMaterial(rawLayerName, value);
-    this.newMaterialRowKey.set(null);
-  }
-
   onSubmit(): void {
     const file = this.selectedFile();
-    if (!file) {
+    const legend = this.legend();
+    if (!file || !legend) {
       return;
     }
 
     this.status.set('uploading');
     this.errorMessage.set(null);
 
-    this.uploadService.upload(file).subscribe({
+    this.uploadService.upload(file, legend).subscribe({
       next: (response) => {
         this.result.set(response);
-        this.materialOverrides.set({});
-        this.newMaterialRowKey.set(null);
         this.status.set('success');
       },
       error: (err: unknown) => {

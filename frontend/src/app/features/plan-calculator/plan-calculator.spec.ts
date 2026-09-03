@@ -1,13 +1,18 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { Observable, of, throwError } from 'rxjs';
 import { PlanCalculator } from './plan-calculator';
-import { UploadResponse } from './models';
+import { LegendEntry, LegendProposalResponse, UploadResponse } from './models';
 import { UploadService } from './upload.service';
 import { provideTranslocoTesting } from '../../core/i18n/testing/provide-transloco-testing';
 
 class FakeUploadService {
   response: UploadResponse | null = null;
   errorPayload: unknown = null;
+  legendResponse: LegendProposalResponse | null = null;
+
+  readLegend(): Observable<LegendProposalResponse> {
+    return of(this.legendResponse as LegendProposalResponse);
+  }
 
   upload(): Observable<UploadResponse> {
     if (this.errorPayload) {
@@ -16,6 +21,10 @@ class FakeUploadService {
     return of(this.response as UploadResponse);
   }
 }
+
+const sampleLegend: LegendEntry[] = [
+  { key: 'WALL', label: 'Wall', colorHex: '#ff0000', linetype: 'CONTINUOUS', lineweight: 25 },
+];
 
 describe('PlanCalculator', () => {
   let fixture: ComponentFixture<PlanCalculator>;
@@ -36,90 +45,75 @@ describe('PlanCalculator', () => {
     component.selectedFile.set(new File(['x'], 'sample.dxf'));
   }
 
-  it('computes area as linearMeters times height in meters', () => {
+  function confirmLegend(legend: LegendEntry[] = sampleLegend): void {
+    component.onLegendConfirmed(legend);
+  }
+
+  it('does not render the upload UI until the legend has been confirmed', () => {
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.querySelector('#dxf-file')).toBeNull();
+    expect(fixture.nativeElement.querySelector('app-legend-step')).not.toBeNull();
+  });
+
+  it('renders the upload UI once onLegendConfirmed has been called', () => {
+    confirmLegend();
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.querySelector('#dxf-file')).not.toBeNull();
+    expect(fixture.nativeElement.querySelector('app-legend-step')).toBeNull();
+  });
+
+  it('does not submit while no legend is confirmed', () => {
+    selectFile();
+    component.onSubmit();
+
+    expect(component.status()).toBe('idle');
+  });
+
+  it('computes areaM2 as linearMeters times height in meters for matched rows', () => {
     fakeService.response = {
-      layers: [{ rawLayerName: 'WALLS', materialName: 'Brick', linearMeters: 10 }],
-      undeterminedLayers: [],
+      matched: [{ key: 'WALL', label: 'Wall', colorHex: '#ff0000', linearMeters: 10 }],
+      undetermined: [],
     };
+    confirmLegend();
     component.heightCm.set(300);
     selectFile();
     component.onSubmit();
 
-    expect(component.rows()).toEqual([
+    expect(component.matchedRows()).toEqual([
       {
-        rawLayerName: 'WALLS',
+        key: 'WALL',
+        label: 'Wall',
+        colorHex: '#ff0000',
         linearMeters: 10,
-        effectiveMaterial: 'Brick',
-        isUndetermined: false,
         areaM2: 30,
       },
     ]);
   });
 
-  it('falls back to the raw name and flags undetermined layers', () => {
+  it('passes result().undetermined through to undeterminedGroups', () => {
+    const undetermined = [{ colorHex: '#00ff00', linetype: 'DASHED', lineweight: 13, linearMeters: 4 }];
     fakeService.response = {
-      layers: [{ rawLayerName: 'LAY_X', materialName: 'LAY_X', linearMeters: 5 }],
-      undeterminedLayers: ['LAY_X'],
+      matched: [],
+      undetermined,
     };
+    confirmLegend();
     selectFile();
     component.onSubmit();
 
-    const [row] = component.rows();
-    expect(row.isUndetermined).toBe(true);
-    expect(row.effectiveMaterial).toBe('LAY_X');
+    expect(component.undeterminedGroups()).toEqual(undetermined);
   });
 
-  it('applies a manual material override without clearing the undetermined flag', () => {
-    fakeService.response = {
-      layers: [{ rawLayerName: 'LAY_X', materialName: 'LAY_X', linearMeters: 5 }],
-      undeterminedLayers: ['LAY_X'],
-    };
-    selectFile();
-    component.onSubmit();
+  it('returns an empty undeterminedGroups array when there is no result yet', () => {
+    confirmLegend();
 
-    component.onAssignMaterial('LAY_X', 'Formigó');
-
-    const [row] = component.rows();
-    expect(row.effectiveMaterial).toBe('Formigó');
-    expect(row.isUndetermined).toBe(true);
-  });
-
-  it('resets overrides when a new upload succeeds', () => {
-    fakeService.response = {
-      layers: [{ rawLayerName: 'LAY_X', materialName: 'LAY_X', linearMeters: 5 }],
-      undeterminedLayers: ['LAY_X'],
-    };
-    selectFile();
-    component.onSubmit();
-    component.onAssignMaterial('LAY_X', 'Formigó');
-
-    fakeService.response = {
-      layers: [{ rawLayerName: 'LAY_Y', materialName: 'LAY_Y', linearMeters: 8 }],
-      undeterminedLayers: ['LAY_Y'],
-    };
-    selectFile();
-    component.onSubmit();
-
-    expect(component.rows()[0].effectiveMaterial).toBe('LAY_Y');
-  });
-
-  it('deduplicates and sorts knownMaterials from effective materials in use', () => {
-    fakeService.response = {
-      layers: [
-        { rawLayerName: 'A', materialName: 'Zinc', linearMeters: 1 },
-        { rawLayerName: 'B', materialName: 'Brick', linearMeters: 1 },
-        { rawLayerName: 'C', materialName: 'Zinc', linearMeters: 1 },
-      ],
-      undeterminedLayers: [],
-    };
-    selectFile();
-    component.onSubmit();
-
-    expect(component.knownMaterials()).toEqual(['Brick', 'Zinc']);
+    expect(component.undeterminedGroups()).toEqual([]);
   });
 
   it('surfaces the backend detail message on error', () => {
     fakeService.errorPayload = { error: { detail: 'Uploaded file is not a valid DXF' } };
+    confirmLegend();
     selectFile();
     component.onSubmit();
 
@@ -129,6 +123,7 @@ describe('PlanCalculator', () => {
 
   it('falls back to a translated generic error message when the backend gives no detail', () => {
     fakeService.errorPayload = { status: 0 };
+    confirmLegend();
     selectFile();
     component.onSubmit();
 
@@ -138,6 +133,7 @@ describe('PlanCalculator', () => {
 
   it('renders the error banner text in the DOM', () => {
     fakeService.errorPayload = { error: { detail: 'Some error' } };
+    confirmLegend();
     selectFile();
     component.onSubmit();
     fixture.detectChanges();
@@ -146,30 +142,9 @@ describe('PlanCalculator', () => {
     expect(banner?.textContent).toContain('Some error');
   });
 
-  it('selects the correct option in the undetermined-row select even when it is not alphabetically first', () => {
-    fakeService.response = {
-      layers: [
-        { rawLayerName: 'LAY_A', materialName: 'Aluminium', linearMeters: 3 },
-        { rawLayerName: 'LAY_X', materialName: 'LAY_X', linearMeters: 5 },
-      ],
-      undeterminedLayers: ['LAY_X'],
-    };
-    selectFile();
-    component.onSubmit();
-    component.onAssignMaterial('LAY_X', 'Zinc');
-    fixture.detectChanges();
-
-    const row = component.rows().find((r) => r.rawLayerName === 'LAY_X')!;
-    expect(row.effectiveMaterial).toBe('Zinc');
-    expect(component.knownMaterials()).toEqual(['Aluminium', 'Zinc']);
-
-    const select: HTMLSelectElement | null = fixture.nativeElement.querySelector('select');
-    expect(select).not.toBeNull();
-    expect(select!.value).toBe('Zinc');
-  });
-
   it('dismisses the error and resets status and message', () => {
     fakeService.errorPayload = { error: { detail: 'Some error' } };
+    confirmLegend();
     selectFile();
     component.onSubmit();
     fixture.detectChanges();

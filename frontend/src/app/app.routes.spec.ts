@@ -37,13 +37,15 @@ describe('app.routes', () => {
     expect(router.url).toBe('/login?returnUrl=%2Fapp');
   });
 
-  it('renders PlanCalculator when navigating to /app while authenticated', async () => {
+  it('renders PlanCalculator when navigating to /app while authenticated, starting on the legend step', async () => {
     fakeAuthService.isAuthenticated.set(true);
 
     await harness.navigateByUrl('/app');
 
-    const fileInput = harness.routeNativeElement?.querySelector('#dxf-file');
-    expect(fileInput).not.toBeNull();
+    const legendFileInput = harness.routeNativeElement?.querySelector('#legend-file');
+    expect(legendFileInput).not.toBeNull();
+    const dxfFileInput = harness.routeNativeElement?.querySelector('#dxf-file');
+    expect(dxfFileInput).toBeNull();
   });
 
   it('renders Landing when navigating to /', async () => {
