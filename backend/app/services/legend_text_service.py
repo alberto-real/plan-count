@@ -1,13 +1,19 @@
 from __future__ import annotations
 
+import logging
 import re
 from dataclasses import dataclass
 
 from ezdxf.document import Drawing
 
+from app.models import LegendEntry
+from app.services.dxf_service import StyleKey, iter_measurable_styles_with_position
+
 _KEY_PATTERN = re.compile(r"^[A-Za-zÀ-ÿ]{0,3}\d{1,3}\*?$")
 _MAX_KEY_LENGTH = 6
 _BOLD_MARKER = re.compile(r"\|b1\|")
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass(frozen=True)
@@ -67,3 +73,87 @@ def _truncate_label(raw_text: str) -> str:
     cut_points = [i for i in (colon_index, newline_index) if i != -1]
     cut = min(cut_points) if cut_points else len(raw_text)
     return raw_text[:cut].strip()
+
+
+def _distance(a: tuple[float, float], b: tuple[float, float]) -> float:
+    return ((a[0] - b[0]) ** 2 + (a[1] - b[1]) ** 2) ** 0.5
+
+
+def _median_nearest_key_distance(keys: list[_TextCandidate]) -> float:
+    distances: list[float] = []
+    for i, key in enumerate(keys):
+        others = [_distance(key.position, other.position) for j, other in enumerate(keys) if j != i]
+        if others:
+            distances.append(min(others))
+    if not distances:
+        return 1.0
+    distances.sort()
+    mid = len(distances) // 2
+    if len(distances) % 2 == 1:
+        return distances[mid]
+    return (distances[mid - 1] + distances[mid]) / 2
+
+
+def _match_threshold(keys: list[_TextCandidate]) -> float:
+    if len(keys) < 2:
+        return 1.0
+    return 2 * _median_nearest_key_distance(keys)
+
+
+def _nearest_within(
+    position: tuple[float, float], candidates: list[_TextCandidate], threshold: float
+) -> _TextCandidate | None:
+    best: _TextCandidate | None = None
+    best_distance = threshold
+    for candidate in candidates:
+        distance = _distance(position, candidate.position)
+        if distance <= best_distance:
+            best, best_distance = candidate, distance
+    return best
+
+
+def extract_legend_entries(doc: Drawing) -> list[LegendEntry]:
+    """Read every legend row's `key`/`label`/style directly from the DXF's
+    real geometry and text — no rendering, no external model. See
+    `docs/superpowers/specs/2026-09-04-geometric-legend-reading-design.md`
+    for the full rationale and matching rules.
+    """
+    text_candidates = _extract_text_candidates(doc)
+    keys = [c for c in text_candidates if c.is_key]
+    labels = [c for c in text_candidates if not c.is_key]
+    threshold = _match_threshold(keys)
+
+    swatches: list[tuple[StyleKey, tuple[float, float]]] = iter_measurable_styles_with_position(doc)
+
+    matches: list[tuple[_TextCandidate, StyleKey]] = []
+    for style, position in swatches:
+        key_candidate = _nearest_within(position, keys, threshold)
+        if key_candidate is None:
+            logger.warning("legend swatch %r has no key text within threshold; dropped", style)
+            continue
+        matches.append((key_candidate, style))
+
+    if not matches:
+        return []
+
+    label_by_key: dict[str, str] = {}
+    for key_candidate in {key for key, _ in matches}:
+        label_candidate = _nearest_within(key_candidate.position, labels, threshold)
+        label_by_key[key_candidate.text] = _truncate_label(label_candidate.text) if label_candidate else ""
+
+    for key_text in list(label_by_key):
+        if key_text.endswith("*"):
+            base_key = key_text.rstrip("*")
+            if base_key in label_by_key:
+                label_by_key[key_text] = label_by_key[base_key]
+
+    return [
+        LegendEntry(
+            key=key_candidate.text,
+            label=label_by_key[key_candidate.text],
+            colorHex=style[0],
+            linetype=style[1],
+            lineweight=style[2],
+        )
+        for key_candidate, style in matches
+    ]
