@@ -14,16 +14,11 @@ from app.models import LegendEntry, LegendProposalResponse, StyleGroup, UploadRe
 from app.services.auth_service import verify_token
 from app.services.dxf_service import detect_unit, group_measurable_geometry_by_style
 from app.services.legend_matching_service import match_geometry_to_legend
-from app.services.legend_service import render_preview_png
-from app.services.llm_service import LegendReadingService, OpenRouterLegendReader
+from app.services.legend_text_service import extract_legend_entries
 
 import ezdxf
 
 router = APIRouter()
-
-_legend_reader: LegendReadingService = OpenRouterLegendReader(
-    api_key=settings.openrouter_api_key, model=settings.legend_model
-)
 
 _LEGEND_LIST_ADAPTER = TypeAdapter(list[LegendEntry])
 
@@ -32,19 +27,9 @@ _LEGEND_LIST_ADAPTER = TypeAdapter(list[LegendEntry])
 async def read_legend(file: UploadFile = File(...)) -> LegendProposalResponse:
     doc = await _read_dxf_upload(file)
 
-    style_groups = group_measurable_geometry_by_style(doc)
-    if not style_groups:
-        raise HTTPException(status_code=400, detail="No measurable geometry found in legend DXF")
-
-    candidates = [
-        StyleGroup(colorHex=color, linetype=linetype, lineweight=lineweight, linearMeters=round(total, 3))
-        for (color, linetype, lineweight), total in style_groups.items()
-    ]
-    try:
-        image_png = await run_in_threadpool(render_preview_png, doc)
-        entries = await run_in_threadpool(_legend_reader.read_legend, image_png, candidates)
-    except Exception as exc:
-        raise HTTPException(status_code=502, detail="Legend reading service failed") from exc
+    entries = await run_in_threadpool(extract_legend_entries, doc)
+    if not entries:
+        raise HTTPException(status_code=400, detail="No legend rows found in legend DXF")
 
     return LegendProposalResponse(entries=entries)
 

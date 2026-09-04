@@ -19,31 +19,23 @@ def _auth_headers(rsa_keypair, mock_jwks, make_token) -> dict[str, str]:
     return {"Authorization": f"Bearer {token}"}
 
 
-class _FakeLegendReader:
-    def __init__(self, entries=None, raises=None):
-        self._entries = entries or []
-        self._raises = raises
+def _build_legend_dxf(tmp_path) -> Path:
+    import ezdxf
 
-    def read_legend(self, image_png, candidates):
-        if self._raises:
-            raise self._raises
-        return self._entries
+    doc = ezdxf.new()
+    msp = doc.modelspace()
+    msp.add_mtext("{\\fArial|b1|i0|c0|p34;R1}", dxfattribs={"insert": (0, 10, 0)})
+    msp.add_mtext("Wall A: some technical detail", dxfattribs={"insert": (0.4, 10.1, 0)})
+    msp.add_lwpolyline([(0, 9.8), (0.4, 9.8)], dxfattribs={"layer": "0", "color": 1})
+    path = tmp_path / "legend.dxf"
+    doc.saveas(path)
+    return path
 
 
-def test_legend_endpoint_returns_entries_from_reader(monkeypatch, rsa_keypair, mock_jwks, make_token):
-    from app.api import endpoints
+def test_legend_endpoint_extracts_entries_from_dxf_geometry(tmp_path, rsa_keypair, mock_jwks, make_token):
+    dxf_path = _build_legend_dxf(tmp_path)
 
-    monkeypatch.setattr(
-        endpoints,
-        "_legend_reader",
-        _FakeLegendReader(
-            entries=[
-                LegendEntry(key="R1", label="Wall A", colorHex="#f8991e", linetype="CONTINUOUS", lineweight=25)
-            ]
-        ),
-    )
-
-    with open(FIXTURE, "rb") as f:
+    with open(dxf_path, "rb") as f:
         response = client.post(
             "/api/legend",
             files={"file": ("legend.dxf", f, "application/dxf")},
@@ -52,24 +44,20 @@ def test_legend_endpoint_returns_entries_from_reader(monkeypatch, rsa_keypair, m
 
     assert response.status_code == 200
     body = response.json()
-    assert body["entries"] == [
-        {"key": "R1", "label": "Wall A", "colorHex": "#f8991e", "linetype": "CONTINUOUS", "lineweight": 25}
-    ]
+    assert len(body["entries"]) == 1
+    assert body["entries"][0]["key"] == "R1"
+    assert body["entries"][0]["label"] == "Wall A"
 
 
-def test_legend_endpoint_returns_502_when_reader_fails(monkeypatch, rsa_keypair, mock_jwks, make_token):
-    from app.api import endpoints
-
-    monkeypatch.setattr(endpoints, "_legend_reader", _FakeLegendReader(raises=RuntimeError("AI unavailable")))
-
-    with open(FIXTURE, "rb") as f:
+def test_legend_endpoint_returns_400_when_no_legend_rows_found(rsa_keypair, mock_jwks, make_token):
+    with open(FIXTURE, "rb") as f:  # sample_two_layers.dxf has geometry but no legend text at all
         response = client.post(
             "/api/legend",
-            files={"file": ("legend.dxf", f, "application/dxf")},
+            files={"file": ("sample_two_layers.dxf", f, "application/dxf")},
             headers=_auth_headers(rsa_keypair, mock_jwks, make_token),
         )
 
-    assert response.status_code == 502
+    assert response.status_code == 400
 
 
 def test_legend_endpoint_rejects_non_dxf_extension(rsa_keypair, mock_jwks, make_token):
