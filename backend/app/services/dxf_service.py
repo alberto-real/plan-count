@@ -188,3 +188,39 @@ def group_measurable_geometry_by_style(doc: Drawing) -> dict[StyleKey, float]:
         totals[style] = totals.get(style, 0.0) + length
 
     return {style: total for style, total in totals.items() if total != 0.0}
+
+
+def iter_measurable_styles_with_position(doc: Drawing) -> list[tuple[StyleKey, tuple[float, float]]]:
+    """Yield `(style, position)` for every measurable `LINE`/`LWPOLYLINE` in
+    the document's modelspace, including ones nested inside `INSERT` block
+    references — one entry per entity, unaggregated.
+
+    This is the position-aware counterpart to
+    `group_measurable_geometry_by_style`: legend swatch matching
+    (`legend_text_service.py`) needs each swatch's own location to pair it
+    with its nearest key/label text, not a style-wide total.
+    """
+    results: list[tuple[StyleKey, tuple[float, float]]] = []
+
+    for entity in iter_with_blocks(doc.modelspace()):
+        length = _entity_length(entity)
+        if length is None or length == 0.0:
+            continue
+        style: StyleKey = (
+            _effective_color_hex(entity, doc),
+            _effective_linetype(entity, doc),
+            _effective_lineweight(entity, doc),
+        )
+        results.append((style, _entity_start_point(entity)))
+
+    return results
+
+
+def _entity_start_point(entity) -> tuple[float, float]:
+    dxftype = entity.dxftype()
+    if dxftype == "LINE":
+        start = entity.dxf.start
+        return (start[0], start[1])
+    # LWPOLYLINE — the only other type _entity_length recognizes.
+    first_point = next(iter(entity.get_points("xy")))
+    return (first_point[0], first_point[1])

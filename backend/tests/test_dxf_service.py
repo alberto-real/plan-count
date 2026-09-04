@@ -7,6 +7,7 @@ from app.services.dxf_service import (
     compute_layer_lengths_from_doc,
     detect_unit,
     group_measurable_geometry_by_style,
+    iter_measurable_styles_with_position,
     iter_with_blocks,
 )
 
@@ -189,3 +190,46 @@ def test_iter_with_blocks_yields_top_level_and_nested_entities():
     assert dxftypes.count("LINE") == 1
     assert dxftypes.count("INSERT") == 1
     assert top_level in entities
+
+
+def test_iter_measurable_styles_with_position_returns_one_entry_per_entity():
+    doc = ezdxf.new()
+    msp = doc.modelspace()
+    msp.add_line((0, 0), (3, 4), dxfattribs={"layer": "0", "color": 1})  # red, 3-4-5
+    msp.add_line((10, 10), (16, 18), dxfattribs={"layer": "0", "color": 5})  # blue, 6-8-10
+    results = iter_measurable_styles_with_position(doc)
+    red_rgb = "#%02x%02x%02x" % ezcolors.aci2rgb(1)
+    blue_rgb = "#%02x%02x%02x" % ezcolors.aci2rgb(5)
+    assert len(results) == 2
+    styles_by_position = {position: style for style, position in results}
+    assert styles_by_position[(0.0, 0.0)] == (red_rgb, "CONTINUOUS", -3)
+    assert styles_by_position[(10.0, 10.0)] == (blue_rgb, "CONTINUOUS", -3)
+
+
+def test_iter_measurable_styles_with_position_uses_first_vertex_for_lwpolyline():
+    doc = ezdxf.new()
+    msp = doc.modelspace()
+    msp.add_lwpolyline([(2, 3), (6, 3), (6, 7)], dxfattribs={"layer": "0", "color": 7})
+    results = iter_measurable_styles_with_position(doc)
+    assert len(results) == 1
+    style, position = results[0]
+    assert position == (2.0, 3.0)
+
+
+def test_iter_measurable_styles_with_position_excludes_zero_length_entities():
+    doc = ezdxf.new()
+    msp = doc.modelspace()
+    msp.add_line((5, 5), (5, 5), dxfattribs={"layer": "0", "color": 1})
+    assert iter_measurable_styles_with_position(doc) == []
+
+
+def test_iter_measurable_styles_with_position_recurses_into_insert_blocks():
+    doc = ezdxf.new()
+    block = doc.blocks.new(name="SWATCH")
+    block.add_line((0, 0), (1, 0), dxfattribs={"color": 1})
+    msp = doc.modelspace()
+    msp.add_blockref("SWATCH", (5, 5))
+    results = iter_measurable_styles_with_position(doc)
+    assert len(results) == 1
+    _, position = results[0]
+    assert position == (5.0, 5.0)  # world coordinates via virtual_entities()
