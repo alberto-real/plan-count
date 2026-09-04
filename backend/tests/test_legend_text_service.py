@@ -75,6 +75,40 @@ def test_blank_text_entity_is_excluded():
     assert _extract_text_candidates(doc) == []
 
 
+def test_plain_text_entity_uses_align_point_when_justified():
+    doc = ezdxf.new()
+    msp = doc.modelspace()
+    msp.add_text(
+        "R2",
+        dxfattribs={
+            "insert": (0, 0, 0),
+            "align_point": (100, 200, 0),
+            "halign": 1,
+            "valign": 2,
+        },
+    )
+    candidates = _extract_text_candidates(doc)
+    assert len(candidates) == 1
+    assert candidates[0].position == (100.0, 200.0)
+
+
+def test_extract_text_candidates_recurses_into_insert_blocks():
+    doc = ezdxf.new()
+    block = doc.blocks.new(name="LABEL_BLOCK")
+    _add_bold_mtext(block, "R1", (0, 0))
+    block.add_mtext("FAÇANA SATE", dxfattribs={"insert": (0.4, 0.1, 0)})
+    msp = doc.modelspace()
+    msp.add_blockref("LABEL_BLOCK", (5, 5))
+
+    candidates = _extract_text_candidates(doc)
+
+    assert len(candidates) == 2
+    key_candidates = [c for c in candidates if c.is_key]
+    assert len(key_candidates) == 1
+    assert key_candidates[0].text == "R1"
+    assert key_candidates[0].position == (5.0, 5.0)  # world coords via virtual_entities()
+
+
 def test_truncate_label_cuts_at_first_colon():
     assert _truncate_label("FAÇANA SATE (32 cm) : 20+100+140") == "FAÇANA SATE (32 cm)"
 
@@ -187,6 +221,49 @@ def test_extract_legend_entries_key_with_no_label_gets_empty_string():
     entries = extract_legend_entries(doc)
 
     assert entries[0].label == ""
+
+
+def test_extract_legend_entries_recurses_into_insert_blocks():
+    # Real architectural DXF exports commonly keep an entire legend row's
+    # key, label, and swatch together inside one bound-XREF INSERT rather
+    # than loose in the modelspace -- if only the swatch's block content
+    # were traversed (as happened before this fix) the key/label text
+    # inside the same block would never be found, and the row would be
+    # dropped entirely.
+    doc = ezdxf.new()
+    block = doc.blocks.new(name="LEGEND_ROW")
+    _add_bold_mtext(block, "R1", (0, 10))
+    _add_label(block, "FAÇANA SATE (32 cm) : 20+100+140", (0.4, 10.1))
+    _add_swatch(block, color_aci=30, linetype="CONTINUOUS", position=(0, 9.8))
+    msp = doc.modelspace()
+    msp.add_blockref("LEGEND_ROW", (0, 0))
+
+    entries = extract_legend_entries(doc)
+
+    orange_rgb = "#%02x%02x%02x" % ezcolors.aci2rgb(30)
+    assert len(entries) == 1
+    assert entries[0].key == "R1"
+    assert entries[0].label == "FAÇANA SATE (32 cm)"
+    assert entries[0].colorHex == orange_rgb
+    assert entries[0].linetype == "CONTINUOUS"
+
+
+def test_extract_legend_entries_deduplicates_identical_matches():
+    # Two measurable entities with the exact same style, both within
+    # threshold of the same key, previously produced two identical,
+    # redundant rows (e.g. a swatch plus a coincidentally-identical table
+    # border/leader line near the same key).
+    doc = ezdxf.new()
+    msp = doc.modelspace()
+    _add_bold_mtext(msp, "R1", (0, 10))
+    _add_label(msp, "FAÇANA SATE (32 cm)", (0.4, 10.1))
+    _add_swatch(msp, color_aci=30, linetype="CONTINUOUS", position=(0, 9.8))
+    _add_swatch(msp, color_aci=30, linetype="CONTINUOUS", position=(0.05, 9.79))
+
+    entries = extract_legend_entries(doc)
+
+    assert len(entries) == 1
+    assert entries[0].key == "R1"
 
 
 def test_extract_legend_entries_realistic_multi_row_layout():

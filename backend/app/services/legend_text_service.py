@@ -7,7 +7,7 @@ from dataclasses import dataclass
 from ezdxf.document import Drawing
 
 from app.models import LegendEntry
-from app.services.dxf_service import StyleKey, iter_measurable_styles_with_position
+from app.services.dxf_service import StyleKey, iter_measurable_styles_with_position, iter_with_blocks
 
 _KEY_PATTERN = re.compile(r"^[A-Za-zÀ-ÿ]{0,3}\d{1,3}\*?$")
 _MAX_KEY_LENGTH = 6
@@ -44,21 +44,26 @@ def _extract_text_candidates(doc: Drawing) -> list[_TextCandidate]:
     than decorative (see spec §Decisions).
     """
     candidates: list[_TextCandidate] = []
-    for entity in doc.modelspace().query("TEXT MTEXT"):
+    for entity in iter_with_blocks(doc.modelspace()):
+        if entity.dxftype() not in ("TEXT", "MTEXT"):
+            continue
+
         if entity.dxftype() == "MTEXT":
             text = entity.plain_text().strip()
             is_bold_capable = True
             is_bold = _is_bold_mtext(entity)
+            position = (entity.dxf.insert[0], entity.dxf.insert[1])
         else:
             text = entity.dxf.text.strip()
             is_bold_capable = False
             is_bold = False
+            placement_point = entity.get_placement()[1]
+            position = (placement_point[0], placement_point[1])
 
         if not text:
             continue
 
         is_key = _matches_key_pattern(text) and (is_bold or not is_bold_capable)
-        position = (entity.dxf.insert[0], entity.dxf.insert[1])
         candidates.append(_TextCandidate(text=text, position=position, is_key=is_key))
 
     return candidates
@@ -117,6 +122,15 @@ def extract_legend_entries(doc: Drawing) -> list[LegendEntry]:
     real geometry and text — no rendering, no external model. See
     `docs/superpowers/specs/2026-09-04-geometric-legend-reading-design.md`
     for the full rationale and matching rules.
+
+    Known limitation: any measurable `LINE`/`LWPOLYLINE` within the matching
+    threshold of a key — not just its intended swatch — becomes a row (e.g.
+    a table border or leader line drawn near a key). The de-duplication
+    below only collapses entries that end up with an *identical*
+    `(key, style)` pair; a spurious entity with a different style near the
+    same key still produces its own, wrong row. Filtering by swatch length
+    or a frontend "remove row" control are the follow-up mitigations for
+    this, not yet implemented.
     """
     text_candidates = _extract_text_candidates(doc)
     keys = [c for c in text_candidates if c.is_key]
@@ -132,6 +146,16 @@ def extract_legend_entries(doc: Drawing) -> list[LegendEntry]:
             logger.warning("legend swatch %r has no key text within threshold; dropped", style)
             continue
         matches.append((key_candidate, style))
+
+    deduped_matches: list[tuple[_TextCandidate, StyleKey]] = []
+    seen: set[tuple[str, StyleKey]] = set()
+    for key_candidate, style in matches:
+        dedup_key = (key_candidate.text, style)
+        if dedup_key in seen:
+            continue
+        seen.add(dedup_key)
+        deduped_matches.append((key_candidate, style))
+    matches = deduped_matches
 
     if not matches:
         return []

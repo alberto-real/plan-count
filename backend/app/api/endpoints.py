@@ -10,7 +10,7 @@ from pydantic import TypeAdapter, ValidationError
 from starlette.concurrency import run_in_threadpool
 
 from app.config import settings
-from app.models import LegendEntry, LegendProposalResponse, StyleGroup, UploadResponse
+from app.models import LegendEntry, LegendProposalResponse, UploadResponse
 from app.services.auth_service import verify_token
 from app.services.dxf_service import detect_unit, group_measurable_geometry_by_style
 from app.services.legend_matching_service import match_geometry_to_legend
