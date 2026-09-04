@@ -5,6 +5,7 @@ import pytest
 from app.services.dxf_service import (
     compute_layer_lengths,
     compute_layer_lengths_from_doc,
+    detect_unit,
     group_measurable_geometry_by_style,
     iter_with_blocks,
 )
@@ -143,6 +144,36 @@ def test_style_grouping_recurses_into_insert_blocks():
     groups = group_measurable_geometry_by_style(doc)
     red_rgb = "#%02x%02x%02x" % ezcolors.aci2rgb(1)
     assert groups[(red_rgb, "CONTINUOUS", -3)] == pytest.approx(4.0)
+
+
+def test_detect_unit_millimeters():
+    doc = ezdxf.new()
+    doc.header["$INSUNITS"] = 4
+    assert detect_unit(doc) == "mm"
+
+
+def test_detect_unit_centimeters():
+    doc = ezdxf.new()
+    doc.header["$INSUNITS"] = 5
+    assert detect_unit(doc) == "cm"
+
+
+def test_detect_unit_meters():
+    doc = ezdxf.new()
+    doc.header["$INSUNITS"] = 6
+    assert detect_unit(doc) == "m"
+
+
+def test_detect_unit_defaults_to_meters_when_unitless():
+    doc = ezdxf.new()
+    doc.header["$INSUNITS"] = 0
+    assert detect_unit(doc) == "m"
+
+
+def test_detect_unit_defaults_to_meters_for_unsupported_unit():
+    doc = ezdxf.new()
+    doc.header["$INSUNITS"] = 1  # inches -- not one of mm/cm/m
+    assert detect_unit(doc) == "m"
 
 
 def test_iter_with_blocks_yields_top_level_and_nested_entities():

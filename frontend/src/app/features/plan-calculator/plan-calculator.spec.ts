@@ -71,10 +71,11 @@ describe('PlanCalculator', () => {
     expect(component.status()).toBe('idle');
   });
 
-  it('computes areaM2 as linearMeters times height in meters for matched rows', () => {
+  it('computes areaM2 as linearMeters times height in meters for matched rows, in meters by default', () => {
     fakeService.response = {
       matched: [{ key: 'WALL', label: 'Wall', colorHex: '#ff0000', linearMeters: 10 }],
       undetermined: [],
+      detectedUnit: 'm',
     };
     confirmLegend();
     component.heightCm.set(300);
@@ -92,11 +93,52 @@ describe('PlanCalculator', () => {
     ]);
   });
 
-  it('passes result().undetermined through to undeterminedGroups', () => {
+  it('adopts the response detectedUnit and scales linearMeters/areaM2 accordingly', () => {
+    fakeService.response = {
+      matched: [{ key: 'WALL', label: 'Wall', colorHex: '#ff0000', linearMeters: 10000 }],
+      undetermined: [],
+      detectedUnit: 'mm',
+    };
+    confirmLegend();
+    component.heightCm.set(300);
+    selectFile();
+    component.onSubmit();
+
+    expect(component.unit()).toBe('mm');
+    expect(component.matchedRows()).toEqual([
+      {
+        key: 'WALL',
+        label: 'Wall',
+        colorHex: '#ff0000',
+        linearMeters: 10, // 10000mm -> 10m
+        areaM2: 30,
+      },
+    ]);
+  });
+
+  it('recomputes matchedRows when the unit is changed after the result arrives', () => {
+    fakeService.response = {
+      matched: [{ key: 'WALL', label: 'Wall', colorHex: '#ff0000', linearMeters: 10 }],
+      undetermined: [],
+      detectedUnit: 'm',
+    };
+    confirmLegend();
+    component.heightCm.set(100);
+    selectFile();
+    component.onSubmit();
+
+    component.unit.set('cm');
+
+    expect(component.matchedRows()[0].linearMeters).toBeCloseTo(0.1); // 10cm -> 0.1m
+    expect(component.matchedRows()[0].areaM2).toBeCloseTo(0.1);
+  });
+
+  it('passes result().undetermined through to undeterminedGroups, scaled by unit', () => {
     const undetermined = [{ colorHex: '#00ff00', linetype: 'DASHED', lineweight: 13, linearMeters: 4 }];
     fakeService.response = {
       matched: [],
       undetermined,
+      detectedUnit: 'm',
     };
     confirmLegend();
     selectFile();

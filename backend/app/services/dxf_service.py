@@ -6,11 +6,14 @@ from pathlib import Path
 import ezdxf
 import ezdxf.colors as ezcolors
 import ezdxf.lldxf.const
+import ezdxf.units as ezunits
 from ezdxf.document import Drawing
 
 logger = logging.getLogger(__name__)
 
 _LENGTH_ENTITY_TYPES = {"LINE", "LWPOLYLINE"}
+
+_SUPPORTED_UNITS = {"mm", "cm", "m"}
 
 
 def compute_layer_lengths(dxf_path: str | Path) -> dict[str, float]:
@@ -71,6 +74,22 @@ def _entity_length(entity) -> float | None:
 
 def _distance(a: tuple[float, float], b: tuple[float, float]) -> float:
     return ((a[0] - b[0]) ** 2 + (a[1] - b[1]) ** 2) ** 0.5
+
+
+def detect_unit(doc: Drawing) -> str:
+    """Best-effort guess at the real-world unit of the DXF's modelspace
+    coordinates, from the `$INSUNITS` header variable.
+
+    Only `"mm"`, `"cm"` and `"m"` are supported by the rest of this
+    sub-project (the unit selector the frontend shows). Anything else --
+    unitless drawings (`$INSUNITS` 0, the DXF default when a drafting
+    application never set it), imperial units, or a value ezdxf doesn't
+    recognize -- falls back to `"m"`, since that's the unit this app has
+    always implicitly assumed.
+    """
+    raw = doc.header.get("$INSUNITS", 0)
+    name = ezunits.decode(raw)
+    return name if name in _SUPPORTED_UNITS else "m"
 
 
 StyleKey = tuple[str, str, int]

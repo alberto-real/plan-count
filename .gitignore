@@ -3,5 +3,6 @@
 .playwright-mcp/
 docs/
 .env.prod
+.env
 /.angular/
 /colab/*

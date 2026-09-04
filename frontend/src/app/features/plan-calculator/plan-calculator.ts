@@ -1,7 +1,7 @@
 import { Component, computed, inject, signal } from '@angular/core';
 import { DecimalPipe } from '@angular/common';
 import { TranslocoModule, TranslocoService } from '@jsverse/transloco';
-import { LegendEntry, MatchedEntry, StyleGroup, UploadResponse } from './models';
+import { LegendEntry, MatchedEntry, StyleGroup, Unit, UNIT_TO_METERS, UploadResponse } from './models';
 import { UploadService } from './upload.service';
 import { LegendStep } from './legend-step/legend-step';
 
@@ -30,6 +30,7 @@ export class PlanCalculator {
   readonly errorMessage = signal<string | null>(null);
   readonly result = signal<UploadResponse | null>(null);
   readonly heightCm = signal<number>(250);
+  readonly unit = signal<Unit>('m');
 
   readonly matchedRows = computed<PlanRow[]>(() => {
     const current = this.result();
@@ -37,16 +38,24 @@ export class PlanCalculator {
       return [];
     }
     const heightMeters = this.heightCm() / 100;
-    return current.matched.map((entry: MatchedEntry) => ({
-      key: entry.key,
-      label: entry.label,
-      colorHex: entry.colorHex,
-      linearMeters: entry.linearMeters,
-      areaM2: entry.linearMeters * heightMeters,
-    }));
+    const unitFactor = UNIT_TO_METERS[this.unit()];
+    return current.matched.map((entry: MatchedEntry) => {
+      const linearMeters = entry.linearMeters * unitFactor;
+      return {
+        key: entry.key,
+        label: entry.label,
+        colorHex: entry.colorHex,
+        linearMeters,
+        areaM2: linearMeters * heightMeters,
+      };
+    });
   });
 
-  readonly undeterminedGroups = computed<StyleGroup[]>(() => this.result()?.undetermined ?? []);
+  readonly undeterminedGroups = computed<StyleGroup[]>(() => {
+    const undetermined = this.result()?.undetermined ?? [];
+    const unitFactor = UNIT_TO_METERS[this.unit()];
+    return undetermined.map((group) => ({ ...group, linearMeters: group.linearMeters * unitFactor }));
+  });
 
   onLegendConfirmed(legend: LegendEntry[]): void {
     this.legend.set(legend);
@@ -63,6 +72,11 @@ export class PlanCalculator {
     this.heightCm.set(Number.isFinite(value) ? value : 0);
   }
 
+  onUnitChange(event: Event): void {
+    const select = event.target as HTMLSelectElement;
+    this.unit.set(select.value as Unit);
+  }
+
   onSubmit(): void {
     const file = this.selectedFile();
     const legend = this.legend();
@@ -76,6 +90,7 @@ export class PlanCalculator {
     this.uploadService.upload(file, legend).subscribe({
       next: (response) => {
         this.result.set(response);
+        this.unit.set(response.detectedUnit);
         this.status.set('success');
       },
       error: (err: unknown) => {

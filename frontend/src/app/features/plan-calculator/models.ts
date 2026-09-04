@@ -27,4 +27,14 @@ export interface LegendProposalResponse {
 export interface UploadResponse {
   matched: MatchedEntry[];
   undetermined: StyleGroup[];
+  detectedUnit: Unit;
 }
+
+export type Unit = 'mm' | 'cm' | 'm';
+
+/** Factor to convert a raw DXF-native length into real meters. */
+export const UNIT_TO_METERS: Record<Unit, number> = {
+  mm: 0.001,
+  cm: 0.01,
+  m: 1,
+};

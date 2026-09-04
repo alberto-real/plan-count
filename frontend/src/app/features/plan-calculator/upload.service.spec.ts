@@ -30,6 +30,7 @@ describe('UploadService', () => {
     const mockResponse: UploadResponse = {
       matched: [{ key: 'WALL', label: 'Wall', colorHex: '#ff0000', linearMeters: 10 }],
       undetermined: [],
+      detectedUnit: 'm',
     };
 
     let result: UploadResponse | undefined;

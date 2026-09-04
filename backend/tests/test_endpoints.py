@@ -105,6 +105,7 @@ def test_upload_matches_and_flags_undetermined(rsa_keypair, mock_jwks, make_toke
     assert body["matched"][0]["key"] == "R1"
     assert body["matched"][0]["linearMeters"] == 19.0  # both fixture layers share this style -> summed
     assert body["undetermined"] == []
+    assert body["detectedUnit"] == "m"  # sample_two_layers.dxf's $INSUNITS is 6 (meters)
 
 
 def test_upload_flags_undetermined_when_legend_style_does_not_match(rsa_keypair, mock_jwks, make_token):
@@ -130,6 +131,28 @@ def test_upload_flags_undetermined_when_legend_style_does_not_match(rsa_keypair,
     assert body["undetermined"] == [
         {"colorHex": "#ffffff", "linetype": "CONTINUOUS", "lineweight": -3, "linearMeters": 19.0}
     ]
+
+
+def test_upload_reports_detected_unit_from_insunits(tmp_path, rsa_keypair, mock_jwks, make_token):
+    import ezdxf
+
+    doc = ezdxf.new()
+    doc.header["$INSUNITS"] = 4  # millimeters
+    msp = doc.modelspace()
+    msp.add_line((0, 0), (10, 0), dxfattribs={"layer": "0", "color": 7})
+    dxf_path = tmp_path / "mm_plan.dxf"
+    doc.saveas(dxf_path)
+
+    with open(dxf_path, "rb") as f:
+        response = client.post(
+            "/api/upload",
+            files={"file": ("mm_plan.dxf", f, "application/dxf")},
+            data={"legend": "[]"},
+            headers=_auth_headers(rsa_keypair, mock_jwks, make_token),
+        )
+
+    assert response.status_code == 200
+    assert response.json()["detectedUnit"] == "mm"
 
 
 def test_upload_rejects_malformed_legend_color_hex(rsa_keypair, mock_jwks, make_token):

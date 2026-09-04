@@ -12,7 +12,7 @@ from starlette.concurrency import run_in_threadpool
 from app.config import settings
 from app.models import LegendEntry, LegendProposalResponse, StyleGroup, UploadResponse
 from app.services.auth_service import verify_token
-from app.services.dxf_service import group_measurable_geometry_by_style
+from app.services.dxf_service import detect_unit, group_measurable_geometry_by_style
 from app.services.legend_matching_service import match_geometry_to_legend
 from app.services.legend_service import render_preview_png
 from app.services.llm_service import LegendReadingService, OpenRouterLegendReader
@@ -60,7 +60,7 @@ async def upload_dxf(file: UploadFile = File(...), legend: str = Form(...)) -> U
     style_groups = group_measurable_geometry_by_style(doc)
     matched, undetermined = match_geometry_to_legend(style_groups, legend_entries, settings.color_match_tolerance)
 
-    return UploadResponse(matched=matched, undetermined=undetermined)
+    return UploadResponse(matched=matched, undetermined=undetermined, detectedUnit=detect_unit(doc))
 
 
 async def _read_dxf_upload(file: UploadFile):

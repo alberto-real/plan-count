@@ -1,3 +1,5 @@
+from typing import Literal
+
 from pydantic import BaseModel, Field
 
 
@@ -30,3 +32,4 @@ class LegendProposalResponse(BaseModel):
 class UploadResponse(BaseModel):
     matched: list[MatchedEntry]
     undetermined: list[StyleGroup]
+    detectedUnit: Literal["mm", "cm", "m"]
