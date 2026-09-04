@@ -147,6 +147,10 @@ def test_extract_legend_entries_asterisk_key_inherits_base_label():
     _add_label(msp, "TRASDOSSAT AUTOPÒRTANT (6,1 cm): 15+48LR.\n \n* (+ porcel·lànic)", (0.4, 10.1))
     _add_swatch(msp, color_aci=152, linetype="CONTINUOUS", position=(0, 9.9))
     _add_bold_mtext(msp, "R3*", (0, 9.6))
+    # A distractor label placed nearer to R3* than R3's real label is --
+    # without the asterisk-overwrite behavior, plain nearest-neighbor
+    # matching would pick this wrong text as R3*'s label instead of R3's.
+    _add_label(msp, "NO RELACIONAT AMB R3", (-0.5, 9.5))
     # No dedicated, row-aligned label for R3* -- the nearest text candidate
     # to it is R3's own (multi-paragraph) label, which is exactly the
     # situation this behavior exists for.
