@@ -1,13 +1,14 @@
+import { NgStyle } from '@angular/common';
 import { Component, inject, output, signal } from '@angular/core';
 import { TranslocoModule, TranslocoService } from '@jsverse/transloco';
-import { LegendEntry } from '../models';
+import { LegendEntry, swatchStyle } from '../models';
 import { UploadService } from '../upload.service';
 
 type Status = 'idle' | 'reading' | 'error' | 'ready';
 
 @Component({
   selector: 'app-legend-step',
-  imports: [TranslocoModule],
+  imports: [TranslocoModule, NgStyle],
   templateUrl: './legend-step.html',
 })
 export class LegendStep {
@@ -63,6 +64,10 @@ export class LegendStep {
   dismissError(): void {
     this.status.set('idle');
     this.errorMessage.set(null);
+  }
+
+  swatchStyle(entry: LegendEntry): Record<string, string> {
+    return swatchStyle(entry);
   }
 
   private extractErrorMessage(err: unknown): string {

@@ -76,7 +76,7 @@ def test_upload_matches_and_flags_undetermined(rsa_keypair, mock_jwks, make_toke
     # that style matches both style groups, summing to 19.0m with nothing
     # left undetermined.
     legend = [
-        LegendEntry(key="R1", label="Wall A", colorHex="#ffffff", linetype="CONTINUOUS", lineweight=-3),
+        LegendEntry(key="R1", label="Wall A", colorHex="#ffffff", linetype="CONTINUOUS", lineweight=-3, isDashed=False),
     ]
 
     with open(FIXTURE, "rb") as f:
@@ -102,7 +102,7 @@ def test_upload_flags_undetermined_when_legend_style_does_not_match(rsa_keypair,
     # linetype/lineweight don't match that style leaves it unmatched, so it
     # must be reported as undetermined rather than silently dropped.
     legend = [
-        LegendEntry(key="R1", label="Wall A", colorHex="#ffffff", linetype="DASHED", lineweight=25),
+        LegendEntry(key="R1", label="Wall A", colorHex="#ffffff", linetype="DASHED", lineweight=25, isDashed=True),
     ]
 
     with open(FIXTURE, "rb") as f:
@@ -117,7 +117,7 @@ def test_upload_flags_undetermined_when_legend_style_does_not_match(rsa_keypair,
     body = response.json()
     assert body["matched"] == []
     assert body["undetermined"] == [
-        {"colorHex": "#ffffff", "linetype": "CONTINUOUS", "lineweight": -3, "linearMeters": 19.0}
+        {"colorHex": "#ffffff", "linetype": "CONTINUOUS", "lineweight": -3, "linearMeters": 19.0, "isDashed": False}
     ]
 
 

@@ -1,7 +1,15 @@
 import { Component, computed, inject, signal } from '@angular/core';
-import { DecimalPipe } from '@angular/common';
+import { DecimalPipe, NgStyle } from '@angular/common';
 import { TranslocoModule, TranslocoService } from '@jsverse/transloco';
-import { LegendEntry, MatchedEntry, StyleGroup, Unit, UNIT_TO_METERS, UploadResponse } from './models';
+import {
+  LegendEntry,
+  MatchedEntry,
+  StyleGroup,
+  Unit,
+  UNIT_TO_METERS,
+  UploadResponse,
+  swatchStyle,
+} from './models';
 import { UploadService } from './upload.service';
 import { LegendStep } from './legend-step/legend-step';
 
@@ -11,13 +19,14 @@ export interface PlanRow {
   key: string;
   label: string;
   colorHex: string;
+  isDashed: boolean;
   linearMeters: number;
   areaM2: number;
 }
 
 @Component({
   selector: 'app-plan-calculator',
-  imports: [DecimalPipe, TranslocoModule, LegendStep],
+  imports: [DecimalPipe, NgStyle, TranslocoModule, LegendStep],
   templateUrl: './plan-calculator.html',
 })
 export class PlanCalculator {
@@ -45,6 +54,7 @@ export class PlanCalculator {
         key: entry.key,
         label: entry.label,
         colorHex: entry.colorHex,
+        isDashed: entry.isDashed,
         linearMeters,
         areaM2: linearMeters * heightMeters,
       };
@@ -103,6 +113,10 @@ export class PlanCalculator {
   dismissError(): void {
     this.status.set('idle');
     this.errorMessage.set(null);
+  }
+
+  swatchStyle(entity: { colorHex: string; isDashed: boolean }): Record<string, string> {
+    return swatchStyle(entity);
   }
 
   private extractErrorMessage(err: unknown): string {

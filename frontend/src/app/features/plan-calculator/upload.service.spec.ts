@@ -9,8 +9,8 @@ describe('UploadService', () => {
   let httpMock: HttpTestingController;
 
   const sampleLegend: LegendEntry[] = [
-    { key: 'WALL', label: 'Wall', colorHex: '#ff0000', linetype: 'CONTINUOUS', lineweight: 25 },
-    { key: 'DOOR', label: 'Door', colorHex: '#00ff00', linetype: 'DASHED', lineweight: 13 },
+    { key: 'WALL', label: 'Wall', colorHex: '#ff0000', linetype: 'CONTINUOUS', lineweight: 25, isDashed: false },
+    { key: 'DOOR', label: 'Door', colorHex: '#00ff00', linetype: 'DASHED', lineweight: 13, isDashed: true },
   ];
 
   beforeEach(() => {
@@ -28,7 +28,7 @@ describe('UploadService', () => {
   it('posts the file and the JSON-stringified legend as FormData to /api/upload', () => {
     const file = new File(['dummy content'], 'sample.dxf', { type: 'application/dxf' });
     const mockResponse: UploadResponse = {
-      matched: [{ key: 'WALL', label: 'Wall', colorHex: '#ff0000', linearMeters: 10 }],
+      matched: [{ key: 'WALL', label: 'Wall', colorHex: '#ff0000', linearMeters: 10, isDashed: false }],
       undetermined: [],
       detectedUnit: 'm',
     };

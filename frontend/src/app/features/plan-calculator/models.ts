@@ -3,6 +3,7 @@ export interface StyleGroup {
   linetype: string;
   lineweight: number;
   linearMeters: number;
+  isDashed: boolean;
 }
 
 export interface LegendEntry {
@@ -11,6 +12,7 @@ export interface LegendEntry {
   colorHex: string;
   linetype: string;
   lineweight: number;
+  isDashed: boolean;
 }
 
 export interface MatchedEntry {
@@ -18,6 +20,7 @@ export interface MatchedEntry {
   label: string;
   colorHex: string;
   linearMeters: number;
+  isDashed: boolean;
 }
 
 export interface LegendProposalResponse {
@@ -38,3 +41,15 @@ export const UNIT_TO_METERS: Record<Unit, number> = {
   cm: 0.01,
   m: 1,
 };
+
+/** A solid fill for a continuous linetype, or a diagonal striped pattern
+ * emulating a dashed line for anything else — so a legend/style swatch
+ * visually matches how the material renders on the plan. */
+export function swatchStyle(entity: { colorHex: string; isDashed: boolean }): Record<string, string> {
+  if (!entity.isDashed) {
+    return { 'background-color': entity.colorHex };
+  }
+  return {
+    'background-image': `repeating-linear-gradient(45deg, ${entity.colorHex} 0, ${entity.colorHex} 4px, transparent 4px, transparent 8px)`,
+  };
+}

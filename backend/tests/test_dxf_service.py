@@ -7,6 +7,7 @@ from app.services.dxf_service import (
     compute_layer_lengths_from_doc,
     detect_unit,
     group_measurable_geometry_by_style,
+    is_dashed_linetype,
     iter_measurable_styles_with_position,
     iter_with_blocks,
 )
@@ -233,3 +234,19 @@ def test_iter_measurable_styles_with_position_recurses_into_insert_blocks():
     assert len(results) == 1
     _, position = results[0]
     assert position == (5.0, 5.0)  # world coordinates via virtual_entities()
+
+
+def test_is_dashed_linetype_false_for_continuous():
+    assert is_dashed_linetype("CONTINUOUS") is False
+
+
+def test_is_dashed_linetype_true_for_dashed():
+    assert is_dashed_linetype("DASHED") is True
+
+
+def test_is_dashed_linetype_true_for_hidden():
+    assert is_dashed_linetype("HIDDEN") is True
+
+
+def test_is_dashed_linetype_true_for_center():
+    assert is_dashed_linetype("CENTER") is True

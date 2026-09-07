@@ -154,6 +154,17 @@ def _effective_linetype(entity, doc: Drawing) -> str:
     return linetype.upper()
 
 
+def is_dashed_linetype(linetype: str) -> bool:
+    """Whether `linetype` (already resolved from `BYLAYER`, see
+    `_effective_linetype`) should render as a discontinuous line in the UI.
+
+    Anything other than `CONTINUOUS` is treated as dashed — the frontend
+    only needs a binary solid/dashed distinction to draw the legend swatch,
+    not the exact DXF dash pattern.
+    """
+    return linetype.upper() != "CONTINUOUS"
+
+
 def _effective_lineweight(entity, doc: Drawing) -> int:
     lineweight = entity.dxf.lineweight
     if lineweight == -1:  # BYLAYER

@@ -8,6 +8,7 @@ class StyleGroup(BaseModel):
     linetype: str
     lineweight: int
     linearMeters: float
+    isDashed: bool
 
 
 class LegendEntry(BaseModel):
@@ -16,6 +17,7 @@ class LegendEntry(BaseModel):
     colorHex: str = Field(pattern=r"^#[0-9a-fA-F]{6}$")
     linetype: str
     lineweight: int
+    isDashed: bool
 
 
 class MatchedEntry(BaseModel):
@@ -23,6 +25,7 @@ class MatchedEntry(BaseModel):
     label: str
     colorHex: str
     linearMeters: float
+    isDashed: bool
 
 
 class LegendProposalResponse(BaseModel):

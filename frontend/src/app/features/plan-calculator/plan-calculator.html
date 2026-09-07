@@ -77,6 +77,7 @@
         <table class="w-full text-left text-sm">
           <thead>
             <tr class="border-b border-gray-200">
+              <th class="py-2 pr-4 font-medium text-gray-600">{{ 'planCalculator.tableColor' | transloco }}</th>
               <th class="py-2 pr-4 font-medium text-gray-600">{{ 'planCalculator.tableKey' | transloco }}</th>
               <th class="py-2 pr-4 font-medium text-gray-600">{{ 'planCalculator.tableMaterial' | transloco }}</th>
               <th class="py-2 pr-4 font-medium text-gray-600">{{ 'planCalculator.tableLinearMeters' | transloco }}</th>
@@ -86,6 +87,12 @@
           <tbody>
             @for (row of matchedRows(); track row.key) {
               <tr class="border-b border-gray-100">
+                <td class="py-2 pr-4">
+                  <span
+                    class="inline-block h-4 w-8 rounded border border-gray-300"
+                    [ngStyle]="swatchStyle(row)"
+                  ></span>
+                </td>
                 <td class="py-2 pr-4 font-mono text-xs">{{ row.key }}</td>
                 <td class="py-2 pr-4">{{ row.label }}</td>
                 <td class="py-2 pr-4">{{ row.linearMeters | number: '1.2-2' }}</td>
@@ -103,7 +110,7 @@
                 <li class="flex items-center gap-2">
                   <span
                     class="inline-block h-3 w-6 rounded border border-gray-300"
-                    [style.background-color]="group.colorHex"
+                    [ngStyle]="swatchStyle(group)"
                   ></span>
                   {{ group.linetype }} · {{ group.linearMeters | number: '1.2-2' }} m
                 </li>

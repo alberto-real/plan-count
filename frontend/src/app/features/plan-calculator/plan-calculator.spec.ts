@@ -23,7 +23,7 @@ class FakeUploadService {
 }
 
 const sampleLegend: LegendEntry[] = [
-  { key: 'WALL', label: 'Wall', colorHex: '#ff0000', linetype: 'CONTINUOUS', lineweight: 25 },
+  { key: 'WALL', label: 'Wall', colorHex: '#ff0000', linetype: 'CONTINUOUS', lineweight: 25, isDashed: false },
 ];
 
 describe('PlanCalculator', () => {
@@ -73,7 +73,7 @@ describe('PlanCalculator', () => {
 
   it('computes areaM2 as linearMeters times height in meters for matched rows, in meters by default', () => {
     fakeService.response = {
-      matched: [{ key: 'WALL', label: 'Wall', colorHex: '#ff0000', linearMeters: 10 }],
+      matched: [{ key: 'WALL', label: 'Wall', colorHex: '#ff0000', linearMeters: 10, isDashed: false }],
       undetermined: [],
       detectedUnit: 'm',
     };
@@ -87,6 +87,7 @@ describe('PlanCalculator', () => {
         key: 'WALL',
         label: 'Wall',
         colorHex: '#ff0000',
+        isDashed: false,
         linearMeters: 10,
         areaM2: 30,
       },
@@ -95,7 +96,7 @@ describe('PlanCalculator', () => {
 
   it('adopts the response detectedUnit and scales linearMeters/areaM2 accordingly', () => {
     fakeService.response = {
-      matched: [{ key: 'WALL', label: 'Wall', colorHex: '#ff0000', linearMeters: 10000 }],
+      matched: [{ key: 'WALL', label: 'Wall', colorHex: '#ff0000', linearMeters: 10000, isDashed: false }],
       undetermined: [],
       detectedUnit: 'mm',
     };
@@ -110,6 +111,7 @@ describe('PlanCalculator', () => {
         key: 'WALL',
         label: 'Wall',
         colorHex: '#ff0000',
+        isDashed: false,
         linearMeters: 10, // 10000mm -> 10m
         areaM2: 30,
       },
@@ -118,7 +120,7 @@ describe('PlanCalculator', () => {
 
   it('recomputes matchedRows when the unit is changed after the result arrives', () => {
     fakeService.response = {
-      matched: [{ key: 'WALL', label: 'Wall', colorHex: '#ff0000', linearMeters: 10 }],
+      matched: [{ key: 'WALL', label: 'Wall', colorHex: '#ff0000', linearMeters: 10, isDashed: false }],
       undetermined: [],
       detectedUnit: 'm',
     };
@@ -133,8 +135,23 @@ describe('PlanCalculator', () => {
     expect(component.matchedRows()[0].areaM2).toBeCloseTo(0.1);
   });
 
+  it('carries isDashed through from the matched entry into the plan row', () => {
+    fakeService.response = {
+      matched: [{ key: 'WALL', label: 'Wall', colorHex: '#ff0000', linearMeters: 10, isDashed: true }],
+      undetermined: [],
+      detectedUnit: 'm',
+    };
+    confirmLegend();
+    selectFile();
+    component.onSubmit();
+
+    expect(component.matchedRows()[0].isDashed).toBe(true);
+  });
+
   it('passes result().undetermined through to undeterminedGroups, scaled by unit', () => {
-    const undetermined = [{ colorHex: '#00ff00', linetype: 'DASHED', lineweight: 13, linearMeters: 4 }];
+    const undetermined = [
+      { colorHex: '#00ff00', linetype: 'DASHED', lineweight: 13, linearMeters: 4, isDashed: true },
+    ];
     fakeService.response = {
       matched: [],
       undetermined,
@@ -151,6 +168,18 @@ describe('PlanCalculator', () => {
     confirmLegend();
 
     expect(component.undeterminedGroups()).toEqual([]);
+  });
+
+  it('returns a solid background style for a non-dashed style group', () => {
+    const style = component.swatchStyle({ colorHex: '#ff0000', isDashed: false });
+
+    expect(style['background-color']).toBe('#ff0000');
+  });
+
+  it('returns a striped background-image style for a dashed style group', () => {
+    const style = component.swatchStyle({ colorHex: '#00ff00', isDashed: true });
+
+    expect(style['background-image']).toContain('#00ff00');
   });
 
   it('surfaces the backend detail message on error', () => {

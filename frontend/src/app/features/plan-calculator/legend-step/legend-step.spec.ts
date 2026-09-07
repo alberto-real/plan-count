@@ -32,8 +32,8 @@ describe('LegendStep', () => {
   let fakeService: FakeUploadService;
 
   const sampleEntries: LegendEntry[] = [
-    { key: 'WALL', label: 'Wall', colorHex: '#ff0000', linetype: 'CONTINUOUS', lineweight: 25 },
-    { key: 'DOOR', label: 'Door', colorHex: '#00ff00', linetype: 'DASHED', lineweight: 13 },
+    { key: 'WALL', label: 'Wall', colorHex: '#ff0000', linetype: 'CONTINUOUS', lineweight: 25, isDashed: false },
+    { key: 'DOOR', label: 'Door', colorHex: '#00ff00', linetype: 'DASHED', lineweight: 13, isDashed: true },
   ];
 
   beforeEach(() => {
@@ -136,5 +136,19 @@ describe('LegendStep', () => {
 
     const banner: HTMLElement | null = fixture.nativeElement.querySelector('div.text-red-700');
     expect(banner?.textContent).toContain('Legend parsing failed');
+  });
+
+  it('returns a solid background style for a non-dashed entry', () => {
+    const style = component.swatchStyle(sampleEntries[0]);
+
+    expect(style['background-color']).toBe('#ff0000');
+    expect(style['background-image']).toBeUndefined();
+  });
+
+  it('returns a striped background-image style for a dashed entry', () => {
+    const style = component.swatchStyle(sampleEntries[1]);
+
+    expect(style['background-image']).toContain('#00ff00');
+    expect(style['background-color']).toBeUndefined();
   });
 });

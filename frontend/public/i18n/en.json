@@ -35,6 +35,7 @@
     "uploading": "Analyzing the file...",
     "dismissError": "Close",
     "summaryTitle": "Step 3: summary",
+    "tableColor": "Color",
     "tableKey": "Key",
     "tableMaterial": "Material",
     "tableLinearMeters": "Linear meters",

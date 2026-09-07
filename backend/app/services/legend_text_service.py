@@ -7,7 +7,7 @@ from dataclasses import dataclass
 from ezdxf.document import Drawing
 
 from app.models import LegendEntry
-from app.services.dxf_service import StyleKey, iter_measurable_styles_with_position, iter_with_blocks
+from app.services.dxf_service import StyleKey, is_dashed_linetype, iter_measurable_styles_with_position, iter_with_blocks
 
 _KEY_PATTERN = re.compile(r"^[A-Za-zÀ-ÿ]{0,3}\d{1,3}\*?$")
 _MAX_KEY_LENGTH = 6
@@ -178,6 +178,7 @@ def extract_legend_entries(doc: Drawing) -> list[LegendEntry]:
             colorHex=style[0],
             linetype=style[1],
             lineweight=style[2],
+            isDashed=is_dashed_linetype(style[1]),
         )
         for key_candidate, style in matches
     ]

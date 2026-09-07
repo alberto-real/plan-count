@@ -154,6 +154,7 @@ def test_extract_legend_entries_happy_path():
     assert entries[0].colorHex == orange_rgb
     assert entries[0].linetype == "CONTINUOUS"
     assert entries[0].lineweight == -3
+    assert entries[0].isDashed is False
 
 
 def test_extract_legend_entries_two_swatches_share_one_key():
@@ -171,6 +172,9 @@ def test_extract_legend_entries_two_swatches_share_one_key():
     assert {e.key for e in entries} == {"R3"}
     assert {e.label for e in entries} == {"TRASDOSSAT AUTOPÒRTANT (6,1 cm)"}
     assert {e.linetype for e in entries} == {"CONTINUOUS", "DASHED2"}
+    by_linetype = {e.linetype: e for e in entries}
+    assert by_linetype["CONTINUOUS"].isDashed is False
+    assert by_linetype["DASHED2"].isDashed is True
 
 
 def test_extract_legend_entries_asterisk_key_inherits_base_label():
