@@ -1,4 +1,4 @@
-import { ApplicationConfig, inject, provideAppInitializer, provideBrowserGlobalErrorListeners } from '@angular/core';
+import { ApplicationConfig, inject, provideAppInitializer, provideBrowserGlobalErrorListeners, isDevMode } from '@angular/core';
 import { provideHttpClient, withInterceptors } from '@angular/common/http';
 import { provideRouter } from '@angular/router';
 import { provideTransloco, TranslocoService } from '@jsverse/transloco';
@@ -9,6 +9,7 @@ import { provideAuth } from './core/auth/auth.providers';
 import { detectLanguage } from './core/i18n/language-detection';
 import { TranslocoHttpLoader } from './core/i18n/transloco-http.loader';
 import { environment } from '../environments/environment';
+import { provideServiceWorker } from '@angular/service-worker';
 
 export const appConfig: ApplicationConfig = {
   providers: [
@@ -30,6 +31,9 @@ export const appConfig: ApplicationConfig = {
       translocoService.setActiveLang(lang);
       return firstValueFrom(translocoService.load(lang));
     }),
-    ...provideAuth(),
+    ...provideAuth(), provideServiceWorker('ngsw-worker.js', {
+            enabled: !isDevMode(),
+            registrationStrategy: 'registerWhenStable:30000'
+          }),
   ]
 };
