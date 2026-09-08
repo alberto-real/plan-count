@@ -134,7 +134,7 @@ describe('LegendStep', () => {
     component.onFileSelected(makeFileInputEvent(new File(['bad'], 'legend.dxf')));
     fixture.detectChanges();
 
-    const banner: HTMLElement | null = fixture.nativeElement.querySelector('div.text-red-700');
+    const banner: HTMLElement | null = fixture.nativeElement.querySelector('div.text-danger');
     expect(banner?.textContent).toContain('Legend parsing failed');
   });
 

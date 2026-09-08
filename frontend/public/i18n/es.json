@@ -6,12 +6,17 @@
   },
   "landing": {
     "title": "Cuenta materiales de planos CAD en segundos",
-    "subtitle": "Sube un archivo DXF y obtén metros lineales y áreas por material al instante.",
+    "subtitle": "Sube la leyenda y el plano en DXF y obtén metros lineales y áreas por material al instante.",
     "cta": "Empezar"
   },
   "login": {
     "title": "Iniciar sesión",
     "button": "Iniciar sesión con Keycloak"
+  },
+  "stepper": {
+    "legend": "Leyenda",
+    "plan": "Plano",
+    "summary": "Resumen"
   },
   "legendStep": {
     "title": "Paso 1: leer la leyenda",

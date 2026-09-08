@@ -12,6 +12,7 @@ import {
 } from './models';
 import { UploadService } from './upload.service';
 import { LegendStep } from './legend-step/legend-step';
+import { PlanStep, PlanStepper } from './plan-stepper/plan-stepper';
 
 type Status = 'idle' | 'uploading' | 'error' | 'success';
 
@@ -26,7 +27,7 @@ export interface PlanRow {
 
 @Component({
   selector: 'app-plan-calculator',
-  imports: [DecimalPipe, NgStyle, TranslocoModule, LegendStep],
+  imports: [DecimalPipe, NgStyle, TranslocoModule, LegendStep, PlanStepper],
   templateUrl: './plan-calculator.html',
 })
 export class PlanCalculator {
@@ -40,6 +41,13 @@ export class PlanCalculator {
   readonly result = signal<UploadResponse | null>(null);
   readonly heightCm = signal<number>(250);
   readonly unit = signal<Unit>('m');
+
+  readonly currentStep = computed<PlanStep>(() => {
+    if (!this.legend()) {
+      return 'legend';
+    }
+    return this.status() === 'success' ? 'summary' : 'plan';
+  });
 
   readonly matchedRows = computed<PlanRow[]>(() => {
     const current = this.result();

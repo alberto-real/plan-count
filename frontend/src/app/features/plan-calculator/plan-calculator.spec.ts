@@ -209,7 +209,7 @@ describe('PlanCalculator', () => {
     component.onSubmit();
     fixture.detectChanges();
 
-    const banner: HTMLElement | null = fixture.nativeElement.querySelector('div.text-red-700');
+    const banner: HTMLElement | null = fixture.nativeElement.querySelector('div.text-danger');
     expect(banner?.textContent).toContain('Some error');
   });
 

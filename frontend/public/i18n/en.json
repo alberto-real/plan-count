@@ -6,12 +6,17 @@
   },
   "landing": {
     "title": "Count materials from CAD plans in seconds",
-    "subtitle": "Upload a DXF file and get linear meters and areas per material instantly.",
+    "subtitle": "Upload the legend and plan as DXF files and get linear meters and areas per material instantly.",
     "cta": "Get started"
   },
   "login": {
     "title": "Log in",
     "button": "Log in with Keycloak"
+  },
+  "stepper": {
+    "legend": "Legend",
+    "plan": "Plan",
+    "summary": "Summary"
   },
   "legendStep": {
     "title": "Step 1: read the legend",

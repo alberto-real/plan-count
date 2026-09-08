@@ -1,29 +1,24 @@
-<div class="mx-auto max-w-2xl space-y-6 p-10 text-center">
+<div class="mx-auto max-w-2xl space-y-8 px-6 py-16 text-center">
   <img
     ngSrc="logo.jpeg"
     alt="ARE - Plan Count"
     width="688"
     height="384"
     priority
-    class="mx-auto h-24 w-auto"
+    class="mx-auto h-48 w-auto rounded-lg border border-line sm:h-56"
   />
-  <h1 class="text-3xl font-bold text-gray-900">{{ 'landing.title' | transloco }}</h1>
-  <p class="text-gray-600">{{ 'landing.subtitle' | transloco }}</p>
+  <div class="space-y-3">
+    <h1 class="font-display text-3xl font-semibold tracking-tight text-ink sm:text-4xl">
+      {{ 'landing.title' | transloco }}
+    </h1>
+    <p class="mx-auto max-w-md text-base text-ink/70">{{ 'landing.subtitle' | transloco }}</p>
+  </div>
   @if (isAuthenticated()) {
-    <a
-      routerLink="/app"
-      data-testid="landing-cta"
-      class="inline-block rounded bg-blue-600 px-6 py-3 font-medium text-white"
-    >
+    <a routerLink="/app" data-testid="landing-cta" class="btn-accent px-8 py-3 text-base">
       {{ 'landing.cta' | transloco }}
     </a>
   } @else {
-    <button
-      type="button"
-      data-testid="landing-cta"
-      (click)="login()"
-      class="inline-block rounded bg-blue-600 px-6 py-3 font-medium text-white"
-    >
+    <button type="button" data-testid="landing-cta" (click)="login()" class="btn-accent px-8 py-3 text-base">
       {{ 'landing.cta' | transloco }}
     </button>
   }

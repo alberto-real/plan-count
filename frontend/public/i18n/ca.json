@@ -6,12 +6,17 @@
   },
   "landing": {
     "title": "Compta materials de plànols CAD en segons",
-    "subtitle": "Puja un fitxer DXF i obtén metres lineals i àrees per material a l'instant.",
+    "subtitle": "Puja la llegenda i el plànol en DXF i obtén metres lineals i àrees per material a l'instant.",
     "cta": "Comença"
   },
   "login": {
     "title": "Inicia sessió",
     "button": "Inicia sessió amb Keycloak"
+  },
+  "stepper": {
+    "legend": "Llegenda",
+    "plan": "Plànol",
+    "summary": "Resum"
   },
   "legendStep": {
     "title": "Pas 1: llegir la llegenda",

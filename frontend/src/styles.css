@@ -2,4 +2,42 @@
 @tailwind components;
 @tailwind utilities;
 
-/* You can add global styles to this file, and also import other style files */
+@layer base {
+  body {
+    @apply bg-paper text-ink font-sans antialiased;
+  }
+
+  h1,
+  h2,
+  h3 {
+    @apply font-display;
+  }
+
+  ::selection {
+    background-color: theme('colors.clay.light');
+    color: theme('colors.ink.DEFAULT');
+  }
+
+  /* Tabular numerals for measurement tables — figures should line up like a ruler. */
+  table {
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+@layer components {
+  .btn-primary {
+    @apply inline-flex items-center justify-center gap-2 rounded-lg bg-ink px-5 py-2.5 text-sm font-medium text-paper transition-colors duration-150 hover:bg-ink-light focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-clay disabled:cursor-not-allowed disabled:bg-ink/40;
+  }
+
+  .btn-accent {
+    @apply inline-flex items-center justify-center gap-2 rounded-lg bg-clay px-5 py-2.5 text-sm font-medium text-paper transition-colors duration-150 hover:bg-clay-light focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink disabled:cursor-not-allowed disabled:bg-clay/40;
+  }
+
+  .field-label {
+    @apply block text-sm font-medium text-ink/80;
+  }
+
+  .field-input {
+    @apply mt-1 block w-full rounded-sm border border-line bg-white px-3 py-2 text-sm text-ink transition-colors duration-150 placeholder:text-ink/40 focus:border-clay focus:outline-none focus:ring-1 focus:ring-clay;
+  }
+}

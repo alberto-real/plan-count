@@ -1,0 +1,18 @@
+<ol class="flex items-center gap-3" aria-label="Progrés">
+  @for (step of steps; track step; let isLast = $last) {
+    <li class="flex flex-1 items-center gap-3">
+      <span
+        class="text-sm font-medium transition-colors duration-200"
+        [class]="stepState(step) === 'active' ? 'text-clay' : stepState(step) === 'done' ? 'text-ink' : 'text-ink/35'"
+      >
+        {{ 'stepper.' + step | transloco }}
+      </span>
+      @if (!isLast) {
+        <span
+          class="h-px flex-1 transition-colors duration-200"
+          [class]="stepState(step) === 'done' ? 'bg-clay' : 'bg-line'"
+        ></span>
+      }
+    </li>
+  }
+</ol>

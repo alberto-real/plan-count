@@ -1,34 +1,41 @@
-<nav class="flex items-center justify-between border-b border-gray-200 px-6 py-3">
-  <a routerLink="/" class="font-semibold text-gray-900">{{ 'navbar.appName' | transloco }}</a>
-  <div class="flex items-center gap-4">
-    @if (isAuthenticated()) {
-      <span data-testid="navbar-username" class="text-sm text-gray-600">{{ userProfile()?.name }}</span>
-      <button
-        type="button"
-        data-testid="navbar-logout"
-        (click)="logout()"
-        class="text-sm font-medium text-blue-600"
-      >
-        {{ 'navbar.logout' | transloco }}
-      </button>
-    } @else {
-      <button
-        type="button"
-        data-testid="navbar-login"
-        (click)="login()"
-        class="text-sm font-medium text-blue-600"
-      >
-        {{ 'navbar.login' | transloco }}
-      </button>
-    }
-    <select
-      data-testid="navbar-lang"
-      (change)="onLangChange($event)"
-      class="rounded border border-gray-300 px-2 py-1 text-sm"
-    >
-      @for (lang of availableLangs; track lang) {
-        <option [value]="lang" [selected]="lang === activeLang()">{{ lang }}</option>
+<nav class="border-b border-line bg-paper">
+  <div class="mx-auto flex max-w-4xl items-center justify-between px-6 py-3">
+    <a routerLink="/" class="font-display text-lg font-semibold tracking-tight text-ink">
+      {{ 'navbar.appName' | transloco }}
+    </a>
+    <div class="flex items-center gap-5">
+      @if (isAuthenticated()) {
+        <span data-testid="navbar-username" class="text-sm text-ink/70">{{ userProfile()?.name }}</span>
+        <button
+          type="button"
+          data-testid="navbar-logout"
+          (click)="logout()"
+          class="text-sm font-medium text-ink transition-colors duration-150 hover:text-clay"
+        >
+          {{ 'navbar.logout' | transloco }}
+        </button>
+      } @else {
+        <button
+          type="button"
+          data-testid="navbar-login"
+          (click)="login()"
+          class="text-sm font-medium text-ink transition-colors duration-150 hover:text-clay"
+        >
+          {{ 'navbar.login' | transloco }}
+        </button>
       }
-    </select>
+      <div class="relative">
+        <select
+          data-testid="navbar-lang"
+          (change)="onLangChange($event)"
+          class="appearance-none rounded-sm border border-line bg-white py-1 pl-2 pr-6 text-sm font-medium uppercase text-ink transition-colors duration-150 hover:border-clay focus:border-clay focus:outline-none focus:ring-1 focus:ring-clay"
+        >
+          @for (lang of availableLangs; track lang) {
+            <option [value]="lang" [selected]="lang === activeLang()">{{ lang }}</option>
+          }
+        </select>
+        <span class="pointer-events-none absolute right-1.5 top-1/2 -translate-y-1/2 text-[10px] text-ink/50">▾</span>
+      </div>
+    </div>
   </div>
 </nav>
