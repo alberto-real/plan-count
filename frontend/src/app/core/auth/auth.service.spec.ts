@@ -3,6 +3,7 @@ import { provideRouter, Router } from '@angular/router';
 import { Subject } from 'rxjs';
 import { vi } from 'vitest';
 import { AuthConfig, OAuthEvent, OAuthService } from 'angular-oauth2-oidc';
+import { environment } from '../../../environments/environment';
 import { AuthService } from './auth.service';
 
 class FakeOAuthService {
@@ -48,6 +49,10 @@ describe('AuthService', () => {
   let fakeOAuthService: FakeOAuthService;
 
   beforeEach(() => {
+    // environment.ts (used in tests) defaults authDisabled to true for local
+    // dev — force it false here so these specs exercise the real OIDC flow;
+    // the dedicated describe block below restores true to test the bypass.
+    environment.authDisabled = false;
     fakeOAuthService = new FakeOAuthService();
     TestBed.configureTestingModule({
       providers: [AuthService, provideRouter([]), { provide: OAuthService, useValue: fakeOAuthService }],
@@ -106,6 +111,20 @@ describe('AuthService', () => {
     service.logout();
 
     expect(navigateSpy).toHaveBeenCalledWith('/');
+  });
+
+  describe('when environment.authDisabled is true', () => {
+    beforeEach(() => {
+      environment.authDisabled = true;
+    });
+
+    it('marks the session as authenticated without touching OAuthService', async () => {
+      await service.initialize();
+
+      expect(service.isAuthenticated()).toBe(true);
+      expect(service.userProfile()).not.toBeNull();
+      expect(fakeOAuthService.configureCalledWith).toBeNull();
+    });
   });
 
   it('re-syncs state when OAuthService emits a token_received event', async () => {

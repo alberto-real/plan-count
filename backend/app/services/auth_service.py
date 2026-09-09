@@ -6,6 +6,8 @@ import httpx
 import jwt
 from fastapi import HTTPException, Request
 
+from app.config import settings
+
 _ISSUER = "https://auth.albertoreal.com/realms/albertoreal"
 _JWKS_URL = f"{_ISSUER}/protocol/openid-connect/certs"
 _CLIENT_ID = "plan-count-frontend"
@@ -53,7 +55,14 @@ def verify_token(request: Request) -> None:
     by default — verified against a real token once the flow is
     exercised end-to-end. If Keycloak turns out to populate `aud`
     instead for this client, checking `aud` here is an equivalent fix.
+
+    Skipped entirely (always passes) when `settings.auth_disabled` is set —
+    local-dev-only escape hatch so Keycloak isn't required to work on the
+    app; must never be true in production.
     """
+    if settings.auth_disabled:
+        return
+
     auth_header = request.headers.get("Authorization")
     if not auth_header or not auth_header.startswith("Bearer "):
         raise _UNAUTHORIZED

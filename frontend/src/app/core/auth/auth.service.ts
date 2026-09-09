@@ -16,6 +16,14 @@ export class AuthService {
   readonly userProfile = this._userProfile.asReadonly();
 
   initialize(): Promise<void> {
+    if (environment.authDisabled) {
+      // Local dev has no Keycloak realm configured — skip the OIDC flow
+      // entirely and treat every session as already authenticated.
+      this._isAuthenticated.set(true);
+      this._userProfile.set({ name: 'Dev', email: 'dev@localhost' });
+      return Promise.resolve();
+    }
+
     const authConfig: AuthConfig = {
       issuer: environment.auth.issuer,
       clientId: environment.auth.clientId,

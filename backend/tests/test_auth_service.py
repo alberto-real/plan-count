@@ -1,6 +1,7 @@
 from fastapi import HTTPException
 import pytest
 
+from app.config import settings
 from app.services import auth_service
 
 
@@ -54,6 +55,14 @@ def test_missing_header_is_rejected():
     with pytest.raises(HTTPException) as exc_info:
         auth_service.verify_token(_FakeRequest({}))
     assert exc_info.value.status_code == 401
+
+
+def test_missing_header_is_accepted_when_auth_disabled(monkeypatch):
+    monkeypatch.setattr(settings, "auth_disabled", True)
+
+    result = auth_service.verify_token(_FakeRequest({}))
+
+    assert result is None
 
 
 def test_malformed_header_is_rejected():
