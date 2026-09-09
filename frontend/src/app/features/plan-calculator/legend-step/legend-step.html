@@ -3,7 +3,12 @@
 
   <div>
     <label for="legend-file" class="field-label">{{ 'legendStep.fileLabel' | transloco }}</label>
-    <input id="legend-file" type="file" accept=".dxf" (change)="onFileSelected($event)" class="field-input" />
+    <app-file-picker-button
+      inputId="legend-file"
+      accept=".dxf"
+      [fileName]="fileName()"
+      (fileSelected)="onFileSelected($event)"
+    />
   </div>
 
   @if (status() === 'reading') {

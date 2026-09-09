@@ -1,4 +1,8 @@
 {
+  "shared": {
+    "chooseFile": "Elegir archivo",
+    "noFileChosen": "Ningún archivo seleccionado"
+  },
   "navbar": {
     "appName": "PlanCount",
     "login": "Iniciar sesión",
@@ -31,6 +35,10 @@
   },
   "planCalculator": {
     "fileLabel": "Archivo DXF",
+    "floorLabel": "Nombre de la planta",
+    "defaultFloorLabel": "Planta {{index}}",
+    "addFloor": "Añadir otra planta",
+    "removeFloor": "Eliminar",
     "heightLabel": "Altura (cm)",
     "unitLabel": "Unidad del plano",
     "unitMm": "Milímetros",
@@ -46,6 +54,10 @@
     "tableLinearMeters": "Metros lineales",
     "tableArea": "Área (m²)",
     "undeterminedTitle": "Geometría sin coincidencia (no está en la leyenda)",
+    "promoteLabelPlaceholder": "Nombre del material",
+    "addToMaterials": "Añadir",
+    "removeRow": "Eliminar",
+    "totalTitle": "Total (todas las plantas)",
     "genericError": "Se ha producido un error inesperado."
   }
 }

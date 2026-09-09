@@ -5,6 +5,7 @@ import { provideTransloco, Translation, TranslocoLoader, TranslocoService } from
 // Keep in sync with frontend/public/i18n/*.json
 const TRANSLATIONS: Record<string, Translation> = {
   ca: {
+    shared: { chooseFile: 'Tria un fitxer', noFileChosen: 'Cap fitxer seleccionat' },
     navbar: { appName: 'PlanCount', login: 'Inicia sessió', logout: 'Tanca sessió' },
     landing: {
       title: 'Compta materials de plànols CAD en segons',
@@ -12,6 +13,7 @@ const TRANSLATIONS: Record<string, Translation> = {
       cta: 'Comença',
     },
     login: { title: 'Inicia sessió', button: 'Inicia sessió amb Keycloak' },
+    stepper: { legend: 'Llegenda', plan: 'Plànol', summary: 'Resum' },
     legendStep: {
       title: 'Pas 1: llegir la llegenda',
       fileLabel: 'Fitxer DXF de la llegenda',
@@ -25,6 +27,10 @@ const TRANSLATIONS: Record<string, Translation> = {
     },
     planCalculator: {
       fileLabel: 'Fitxer DXF',
+      floorLabel: 'Nom de la planta',
+      defaultFloorLabel: 'Planta {{index}}',
+      addFloor: 'Afegeix una altra planta',
+      removeFloor: 'Elimina',
       heightLabel: 'Alçada (cm)',
       submitButton: 'Analitza',
       uploading: 'Analitzant el fitxer...',
@@ -34,10 +40,15 @@ const TRANSLATIONS: Record<string, Translation> = {
       tableLinearMeters: 'Metres lineals',
       tableArea: 'Àrea (m²)',
       undeterminedTitle: 'Geometria no coincident (no a la llegenda)',
+      promoteLabelPlaceholder: 'Nom del material',
+      addToMaterials: 'Afegeix',
+      removeRow: 'Elimina',
+      totalTitle: 'Total (totes les plantes)',
       genericError: "S'ha produït un error inesperat.",
     },
   },
   es: {
+    shared: { chooseFile: 'Elegir archivo', noFileChosen: 'Ningún archivo seleccionado' },
     navbar: { appName: 'PlanCount', login: 'Iniciar sesión', logout: 'Cerrar sesión' },
     landing: {
       title: 'Cuenta materiales de planos CAD en segundos',
@@ -45,6 +56,7 @@ const TRANSLATIONS: Record<string, Translation> = {
       cta: 'Empezar',
     },
     login: { title: 'Iniciar sesión', button: 'Iniciar sesión con Keycloak' },
+    stepper: { legend: 'Leyenda', plan: 'Plano', summary: 'Resumen' },
     legendStep: {
       title: 'Paso 1: leer la leyenda',
       fileLabel: 'Archivo DXF de la leyenda',
@@ -58,6 +70,10 @@ const TRANSLATIONS: Record<string, Translation> = {
     },
     planCalculator: {
       fileLabel: 'Archivo DXF',
+      floorLabel: 'Nombre de la planta',
+      defaultFloorLabel: 'Planta {{index}}',
+      addFloor: 'Añadir otra planta',
+      removeFloor: 'Eliminar',
       heightLabel: 'Altura (cm)',
       submitButton: 'Analizar',
       uploading: 'Analizando el archivo...',
@@ -67,10 +83,15 @@ const TRANSLATIONS: Record<string, Translation> = {
       tableLinearMeters: 'Metros lineales',
       tableArea: 'Área (m²)',
       undeterminedTitle: 'Geometría sin coincidencia (no está en la leyenda)',
+      promoteLabelPlaceholder: 'Nombre del material',
+      addToMaterials: 'Añadir',
+      removeRow: 'Eliminar',
+      totalTitle: 'Total (todas las plantas)',
       genericError: 'Se ha producido un error inesperado.',
     },
   },
   en: {
+    shared: { chooseFile: 'Choose file', noFileChosen: 'No file chosen' },
     navbar: { appName: 'PlanCount', login: 'Log in', logout: 'Log out' },
     landing: {
       title: 'Count materials from CAD plans in seconds',
@@ -78,6 +99,7 @@ const TRANSLATIONS: Record<string, Translation> = {
       cta: 'Get started',
     },
     login: { title: 'Log in', button: 'Log in with Keycloak' },
+    stepper: { legend: 'Legend', plan: 'Plan', summary: 'Summary' },
     legendStep: {
       title: 'Step 1: read the legend',
       fileLabel: 'Legend DXF file',
@@ -91,6 +113,10 @@ const TRANSLATIONS: Record<string, Translation> = {
     },
     planCalculator: {
       fileLabel: 'DXF file',
+      floorLabel: 'Floor name',
+      defaultFloorLabel: 'Floor {{index}}',
+      addFloor: 'Add another floor',
+      removeFloor: 'Remove',
       heightLabel: 'Height (cm)',
       submitButton: 'Analyze',
       uploading: 'Analyzing the file...',
@@ -100,6 +126,10 @@ const TRANSLATIONS: Record<string, Translation> = {
       tableLinearMeters: 'Linear meters',
       tableArea: 'Area (m²)',
       undeterminedTitle: 'Unmatched geometry (not in the legend)',
+      promoteLabelPlaceholder: 'Material name',
+      addToMaterials: 'Add',
+      removeRow: 'Remove',
+      totalTitle: 'Total (all floors)',
       genericError: 'An unexpected error occurred.',
     },
   },

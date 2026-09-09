@@ -1,4 +1,8 @@
 {
+  "shared": {
+    "chooseFile": "Tria un fitxer",
+    "noFileChosen": "Cap fitxer seleccionat"
+  },
   "navbar": {
     "appName": "PlanCount",
     "login": "Inicia sessió",
@@ -31,6 +35,10 @@
   },
   "planCalculator": {
     "fileLabel": "Fitxer DXF",
+    "floorLabel": "Nom de la planta",
+    "defaultFloorLabel": "Planta {{index}}",
+    "addFloor": "Afegeix una altra planta",
+    "removeFloor": "Elimina",
     "heightLabel": "Alçada (cm)",
     "unitLabel": "Unitat del plànol",
     "unitMm": "Mil·límetres",
@@ -46,6 +54,10 @@
     "tableLinearMeters": "Metres lineals",
     "tableArea": "Àrea (m²)",
     "undeterminedTitle": "Geometria no coincident (no a la llegenda)",
+    "promoteLabelPlaceholder": "Nom del material",
+    "addToMaterials": "Afegeix",
+    "removeRow": "Elimina",
+    "totalTitle": "Total (totes les plantes)",
     "genericError": "S'ha produït un error inesperat."
   }
 }

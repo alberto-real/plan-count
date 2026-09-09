@@ -1,4 +1,8 @@
 {
+  "shared": {
+    "chooseFile": "Choose file",
+    "noFileChosen": "No file chosen"
+  },
   "navbar": {
     "appName": "PlanCount",
     "login": "Log in",
@@ -31,6 +35,10 @@
   },
   "planCalculator": {
     "fileLabel": "DXF file",
+    "floorLabel": "Floor name",
+    "defaultFloorLabel": "Floor {{index}}",
+    "addFloor": "Add another floor",
+    "removeFloor": "Remove",
     "heightLabel": "Height (cm)",
     "unitLabel": "Plan unit",
     "unitMm": "Millimeters",
@@ -46,6 +54,10 @@
     "tableLinearMeters": "Linear meters",
     "tableArea": "Area (m²)",
     "undeterminedTitle": "Unmatched geometry (not in the legend)",
+    "promoteLabelPlaceholder": "Material name",
+    "addToMaterials": "Add",
+    "removeRow": "Remove",
+    "totalTitle": "Total (all floors)",
     "genericError": "An unexpected error occurred."
   }
 }

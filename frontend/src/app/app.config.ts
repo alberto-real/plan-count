@@ -6,7 +6,7 @@ import { firstValueFrom } from 'rxjs';
 import { routes } from './app.routes';
 import { authInterceptor } from './core/auth/auth.interceptor';
 import { provideAuth } from './core/auth/auth.providers';
-import { detectLanguage } from './core/i18n/language-detection';
+import { detectLanguage, getStoredLanguage } from './core/i18n/language-detection';
 import { TranslocoHttpLoader } from './core/i18n/transloco-http.loader';
 import { environment } from '../environments/environment';
 import { provideServiceWorker } from '@angular/service-worker';
@@ -27,7 +27,7 @@ export const appConfig: ApplicationConfig = {
     }),
     provideAppInitializer(() => {
       const translocoService = inject(TranslocoService);
-      const lang = detectLanguage(navigator.language);
+      const lang = getStoredLanguage() ?? detectLanguage(navigator.language);
       translocoService.setActiveLang(lang);
       return firstValueFrom(translocoService.load(lang));
     }),

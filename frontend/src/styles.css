@@ -38,6 +38,6 @@
   }
 
   .field-input {
-    @apply mt-1 block w-full rounded-sm border border-line bg-white px-3 py-2 text-sm text-ink transition-colors duration-150 placeholder:text-ink/40 focus:border-clay focus:outline-none focus:ring-1 focus:ring-clay;
+    @apply mt-1 block w-full rounded-lg border border-line bg-white px-3 py-2 text-sm text-ink transition-colors duration-150 placeholder:text-ink/40 focus:border-clay focus:outline-none focus:ring-1 focus:ring-clay;
   }
 }

@@ -1,4 +1,4 @@
-import { Component, input } from '@angular/core';
+import { Component, input, output } from '@angular/core';
 import { TranslocoModule } from '@jsverse/transloco';
 
 export type PlanStep = 'legend' | 'plan' | 'summary';
@@ -9,9 +9,12 @@ const STEPS: readonly PlanStep[] = ['legend', 'plan', 'summary'];
   selector: 'app-plan-stepper',
   imports: [TranslocoModule],
   templateUrl: './plan-stepper.html',
+  host: { class: 'block w-full' },
 })
 export class PlanStepper {
   readonly currentStep = input.required<PlanStep>();
+
+  readonly stepSelected = output<PlanStep>();
 
   readonly steps = STEPS;
 
@@ -25,5 +28,9 @@ export class PlanStepper {
       return 'active';
     }
     return 'pending';
+  }
+
+  onStepClick(step: PlanStep): void {
+    this.stepSelected.emit(step);
   }
 }

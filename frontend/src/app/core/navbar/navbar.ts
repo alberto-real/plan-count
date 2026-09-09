@@ -3,6 +3,7 @@ import { toSignal } from '@angular/core/rxjs-interop';
 import { RouterLink } from '@angular/router';
 import { TranslocoModule, TranslocoService } from '@jsverse/transloco';
 import { AuthService } from '../auth/auth.service';
+import { setStoredLanguage } from '../i18n/language-detection';
 
 @Component({
   selector: 'app-navbar',
@@ -31,5 +32,6 @@ export class Navbar {
   onLangChange(event: Event): void {
     const value = (event.target as HTMLSelectElement).value;
     this.translocoService.setActiveLang(value);
+    setStoredLanguage(value);
   }
 }

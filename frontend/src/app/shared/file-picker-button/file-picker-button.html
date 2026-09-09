@@ -1,0 +1,18 @@
+<div class="flex flex-wrap items-center gap-3">
+  <input
+    #fileInput
+    type="file"
+    [id]="inputId()"
+    [accept]="accept()"
+    (change)="onChange($event)"
+    hidden
+  />
+  <button type="button" (click)="openPicker()" class="btn-primary">
+    {{ 'shared.chooseFile' | transloco }}
+  </button>
+  @if (fileName()) {
+    <span class="text-sm text-ink/70">{{ fileName() }}</span>
+  } @else {
+    <span class="text-sm text-ink/40">{{ 'shared.noFileChosen' | transloco }}</span>
+  }
+</div>

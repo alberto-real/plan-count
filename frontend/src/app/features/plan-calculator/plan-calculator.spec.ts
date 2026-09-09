@@ -6,19 +6,18 @@ import { UploadService } from './upload.service';
 import { provideTranslocoTesting } from '../../core/i18n/testing/provide-transloco-testing';
 
 class FakeUploadService {
-  response: UploadResponse | null = null;
+  responses: UploadResponse[] = [];
   errorPayload: unknown = null;
-  legendResponse: LegendProposalResponse | null = null;
 
   readLegend(): Observable<LegendProposalResponse> {
-    return of(this.legendResponse as LegendProposalResponse);
+    return of({ entries: [] });
   }
 
   upload(): Observable<UploadResponse> {
     if (this.errorPayload) {
       return throwError(() => this.errorPayload);
     }
-    return of(this.response as UploadResponse);
+    return of(this.responses.shift() as UploadResponse);
   }
 }
 
@@ -42,7 +41,8 @@ describe('PlanCalculator', () => {
   });
 
   function selectFile(): void {
-    component.selectedFile.set(new File(['x'], 'sample.dxf'));
+    const planId = component.planFiles()[0].id;
+    component.onPlanFileSelected(planId, new File(['x'], 'sample.dxf'));
   }
 
   function confirmLegend(legend: LegendEntry[] = sampleLegend): void {
@@ -52,7 +52,10 @@ describe('PlanCalculator', () => {
   it('does not render the upload UI until the legend has been confirmed', () => {
     fixture.detectChanges();
 
-    expect(fixture.nativeElement.querySelector('#dxf-file')).toBeNull();
+    const buttonTexts = [...fixture.nativeElement.querySelectorAll('button')].map((b: HTMLButtonElement) =>
+      b.textContent?.trim(),
+    );
+    expect(buttonTexts).not.toContain('Analyze');
     expect(fixture.nativeElement.querySelector('app-legend-step')).not.toBeNull();
   });
 
@@ -60,29 +63,26 @@ describe('PlanCalculator', () => {
     confirmLegend();
     fixture.detectChanges();
 
-    expect(fixture.nativeElement.querySelector('#dxf-file')).not.toBeNull();
+    expect(fixture.nativeElement.querySelector('app-file-picker-button')).not.toBeNull();
     expect(fixture.nativeElement.querySelector('app-legend-step')).toBeNull();
   });
 
-  it('does not submit while no legend is confirmed', () => {
-    selectFile();
-    component.onSubmit();
+  it('does not allow submitting while no file has been chosen', () => {
+    confirmLegend();
 
-    expect(component.status()).toBe('idle');
+    expect(component.canSubmit()).toBe(false);
   });
 
   it('computes areaM2 as linearMeters times height in meters for matched rows, in meters by default', () => {
-    fakeService.response = {
-      matched: [{ key: 'WALL', label: 'Wall', colorHex: '#ff0000', linearMeters: 10, isDashed: false }],
-      undetermined: [],
-      detectedUnit: 'm',
-    };
+    fakeService.responses = [
+      { matched: [{ key: 'WALL', label: 'Wall', colorHex: '#ff0000', linearMeters: 10, isDashed: false }], undetermined: [], detectedUnit: 'm' },
+    ];
     confirmLegend();
     component.heightCm.set(300);
     selectFile();
     component.onSubmit();
 
-    expect(component.matchedRows()).toEqual([
+    expect(component.reports()[0].rows).toEqual([
       {
         key: 'WALL',
         label: 'Wall',
@@ -95,35 +95,29 @@ describe('PlanCalculator', () => {
   });
 
   it('adopts the response detectedUnit and scales linearMeters/areaM2 accordingly', () => {
-    fakeService.response = {
-      matched: [{ key: 'WALL', label: 'Wall', colorHex: '#ff0000', linearMeters: 10000, isDashed: false }],
-      undetermined: [],
-      detectedUnit: 'mm',
-    };
+    fakeService.responses = [
+      { matched: [{ key: 'WALL', label: 'Wall', colorHex: '#ff0000', linearMeters: 10000, isDashed: false }], undetermined: [], detectedUnit: 'mm' },
+    ];
     confirmLegend();
     component.heightCm.set(300);
     selectFile();
     component.onSubmit();
 
     expect(component.unit()).toBe('mm');
-    expect(component.matchedRows()).toEqual([
-      {
-        key: 'WALL',
-        label: 'Wall',
-        colorHex: '#ff0000',
-        isDashed: false,
-        linearMeters: 10, // 10000mm -> 10m
-        areaM2: 30,
-      },
-    ]);
+    expect(component.reports()[0].rows[0]).toEqual({
+      key: 'WALL',
+      label: 'Wall',
+      colorHex: '#ff0000',
+      isDashed: false,
+      linearMeters: 10, // 10000mm -> 10m
+      areaM2: 30,
+    });
   });
 
-  it('recomputes matchedRows when the unit is changed after the result arrives', () => {
-    fakeService.response = {
-      matched: [{ key: 'WALL', label: 'Wall', colorHex: '#ff0000', linearMeters: 10, isDashed: false }],
-      undetermined: [],
-      detectedUnit: 'm',
-    };
+  it('recomputes rows when the unit is changed after the result arrives', () => {
+    fakeService.responses = [
+      { matched: [{ key: 'WALL', label: 'Wall', colorHex: '#ff0000', linearMeters: 10, isDashed: false }], undetermined: [], detectedUnit: 'm' },
+    ];
     confirmLegend();
     component.heightCm.set(100);
     selectFile();
@@ -131,43 +125,82 @@ describe('PlanCalculator', () => {
 
     component.unit.set('cm');
 
-    expect(component.matchedRows()[0].linearMeters).toBeCloseTo(0.1); // 10cm -> 0.1m
-    expect(component.matchedRows()[0].areaM2).toBeCloseTo(0.1);
+    expect(component.reports()[0].rows[0].linearMeters).toBeCloseTo(0.1); // 10cm -> 0.1m
+    expect(component.reports()[0].rows[0].areaM2).toBeCloseTo(0.1);
   });
 
   it('carries isDashed through from the matched entry into the plan row', () => {
-    fakeService.response = {
-      matched: [{ key: 'WALL', label: 'Wall', colorHex: '#ff0000', linearMeters: 10, isDashed: true }],
-      undetermined: [],
-      detectedUnit: 'm',
-    };
-    confirmLegend();
-    selectFile();
-    component.onSubmit();
-
-    expect(component.matchedRows()[0].isDashed).toBe(true);
-  });
-
-  it('passes result().undetermined through to undeterminedGroups, scaled by unit', () => {
-    const undetermined = [
-      { colorHex: '#00ff00', linetype: 'DASHED', lineweight: 13, linearMeters: 4, isDashed: true },
+    fakeService.responses = [
+      { matched: [{ key: 'WALL', label: 'Wall', colorHex: '#ff0000', linearMeters: 10, isDashed: true }], undetermined: [], detectedUnit: 'm' },
     ];
-    fakeService.response = {
-      matched: [],
-      undetermined,
-      detectedUnit: 'm',
-    };
     confirmLegend();
     selectFile();
     component.onSubmit();
 
-    expect(component.undeterminedGroups()).toEqual(undetermined);
+    expect(component.reports()[0].rows[0].isDashed).toBe(true);
   });
 
-  it('returns an empty undeterminedGroups array when there is no result yet', () => {
+  it('exposes result().undetermined through the report, scaled by unit', () => {
+    const undetermined = [{ colorHex: '#00ff00', linetype: 'DASHED', lineweight: 13, linearMeters: 4, isDashed: true }];
+    fakeService.responses = [{ matched: [], undetermined, detectedUnit: 'm' }];
+    confirmLegend();
+    selectFile();
+    component.onSubmit();
+
+    expect(component.reports()[0].undetermined).toEqual(undetermined);
+  });
+
+  it('returns an empty reports array when there is no result yet', () => {
     confirmLegend();
 
-    expect(component.undeterminedGroups()).toEqual([]);
+    expect(component.reports()).toEqual([]);
+  });
+
+  it('lets the user promote unmatched geometry into the materials table with a custom label', () => {
+    const group = { colorHex: '#00ff00', linetype: 'DASHED', lineweight: 13, linearMeters: 4, isDashed: true };
+    fakeService.responses = [{ matched: [], undetermined: [group], detectedUnit: 'm' }];
+    confirmLegend();
+    selectFile();
+    component.onSubmit();
+
+    const planId = component.reports()[0].id;
+    component.promoteGroup(planId, group, 'Insulation');
+
+    const report = component.reports()[0];
+    expect(report.undetermined).toEqual([]);
+    expect(report.rows.some((r) => r.label === 'Insulation')).toBe(true);
+  });
+
+  it('lets the user remove a previously promoted row', () => {
+    const group = { colorHex: '#00ff00', linetype: 'DASHED', lineweight: 13, linearMeters: 4, isDashed: true };
+    fakeService.responses = [{ matched: [], undetermined: [group], detectedUnit: 'm' }];
+    confirmLegend();
+    selectFile();
+    component.onSubmit();
+
+    const planId = component.reports()[0].id;
+    component.promoteGroup(planId, group, 'Insulation');
+    component.unpromoteGroup(planId, group);
+
+    const report = component.reports()[0];
+    expect(report.rows).toEqual([]);
+    expect(report.undetermined).toEqual([group]);
+  });
+
+  it('aggregates rows across multiple plans into totalRows by material key', () => {
+    fakeService.responses = [
+      { matched: [{ key: 'WALL', label: 'Wall', colorHex: '#ff0000', linearMeters: 10, isDashed: false }], undetermined: [], detectedUnit: 'm' },
+      { matched: [{ key: 'WALL', label: 'Wall', colorHex: '#ff0000', linearMeters: 5, isDashed: false }], undetermined: [], detectedUnit: 'm' },
+    ];
+    confirmLegend();
+    selectFile();
+    component.addPlanFile();
+    component.onPlanFileSelected(component.planFiles()[1].id, new File(['y'], 'second.dxf'));
+    component.onSubmit();
+
+    expect(component.totalRows()).toEqual([
+      { key: 'WALL', label: 'Wall', colorHex: '#ff0000', isDashed: false, linearMeters: 15, areaM2: 15 * 2.5 },
+    ]);
   });
 
   it('returns a solid background style for a non-dashed style group', () => {
@@ -188,8 +221,9 @@ describe('PlanCalculator', () => {
     selectFile();
     component.onSubmit();
 
-    expect(component.status()).toBe('error');
-    expect(component.errorMessage()).toBe('Uploaded file is not a valid DXF');
+    const plan = component.planFiles()[0];
+    expect(plan.status).toBe('error');
+    expect(plan.errorMessage).toBe('Uploaded file is not a valid DXF');
   });
 
   it('falls back to a translated generic error message when the backend gives no detail', () => {
@@ -198,8 +232,9 @@ describe('PlanCalculator', () => {
     selectFile();
     component.onSubmit();
 
-    expect(component.status()).toBe('error');
-    expect(component.errorMessage()).toBe('An unexpected error occurred.');
+    const plan = component.planFiles()[0];
+    expect(plan.status).toBe('error');
+    expect(plan.errorMessage).toBe('An unexpected error occurred.');
   });
 
   it('renders the error banner text in the DOM', () => {
@@ -225,7 +260,32 @@ describe('PlanCalculator', () => {
     dismissButton!.click();
     fixture.detectChanges();
 
-    expect(component.status()).toBe('idle');
-    expect(component.errorMessage()).toBeNull();
+    const plan = component.planFiles()[0];
+    expect(plan.status).toBe('idle');
+    expect(plan.errorMessage).toBeNull();
+  });
+
+  it('lets the user navigate back to a previous step via the stepper', () => {
+    confirmLegend();
+
+    component.onStepSelected('legend');
+
+    expect(component.viewStep()).toBe('legend');
+  });
+
+  it('adds and removes additional floor entries', () => {
+    expect(component.planFiles().length).toBe(1);
+
+    component.addPlanFile();
+    expect(component.planFiles().length).toBe(2);
+
+    component.removePlanFile(component.planFiles()[1].id);
+    expect(component.planFiles().length).toBe(1);
+  });
+
+  it('does not remove the last remaining floor entry', () => {
+    component.removePlanFile(component.planFiles()[0].id);
+
+    expect(component.planFiles().length).toBe(1);
   });
 });

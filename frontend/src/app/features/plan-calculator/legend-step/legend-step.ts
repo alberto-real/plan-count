@@ -1,6 +1,7 @@
 import { NgStyle } from '@angular/common';
 import { Component, inject, output, signal } from '@angular/core';
 import { TranslocoModule, TranslocoService } from '@jsverse/transloco';
+import { FilePickerButton } from '../../../shared/file-picker-button/file-picker-button';
 import { LegendEntry, swatchStyle } from '../models';
 import { UploadService } from '../upload.service';
 
@@ -8,7 +9,7 @@ type Status = 'idle' | 'reading' | 'error' | 'ready';
 
 @Component({
   selector: 'app-legend-step',
-  imports: [TranslocoModule, NgStyle],
+  imports: [TranslocoModule, NgStyle, FilePickerButton],
   templateUrl: './legend-step.html',
 })
 export class LegendStep {
@@ -20,14 +21,14 @@ export class LegendStep {
   readonly status = signal<Status>('idle');
   readonly errorMessage = signal<string | null>(null);
   readonly entries = signal<LegendEntry[]>([]);
+  readonly fileName = signal<string | null>(null);
 
-  onFileSelected(event: Event): void {
-    const input = event.target as HTMLInputElement;
-    const file = input.files?.[0];
+  onFileSelected(file: File | null): void {
     if (!file) {
       return;
     }
 
+    this.fileName.set(file.name);
     this.status.set('reading');
     this.errorMessage.set(null);
 
