@@ -34,7 +34,7 @@
   }
 
   .field-label {
-    @apply block text-sm font-medium text-ink/80;
+    @apply block text-sm font-medium text-ink/80 mb-2;
   }
 
   .field-input {

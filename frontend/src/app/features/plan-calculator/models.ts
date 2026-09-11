@@ -72,11 +72,14 @@ export function styleGroupKey(group: StyleGroup): string {
 /** A solid fill for a continuous linetype, or a diagonal striped pattern
  * emulating a dashed line for anything else — so a legend/style swatch
  * visually matches how the material renders on the plan. */
-export function swatchStyle(entity: { colorHex: string; isDashed: boolean }): Record<string, string> {
+export function swatchStyle(entity: {
+  colorHex: string;
+  isDashed: boolean;
+}): Record<string, string> {
   if (!entity.isDashed) {
     return { 'background-color': entity.colorHex };
   }
   return {
-    'background-image': `repeating-linear-gradient(45deg, ${entity.colorHex} 0, ${entity.colorHex} 4px, transparent 4px, transparent 8px)`,
+    'background-image': `repeating-linear-gradient(90deg, ${entity.colorHex} 0, ${entity.colorHex} 4px, transparent 4px, transparent 8px)`,
   };
 }

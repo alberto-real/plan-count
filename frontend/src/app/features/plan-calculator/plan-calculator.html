@@ -36,7 +36,9 @@
             }
 
             <div>
-              <label [for]="'dxf-file-' + plan.id" class="field-label">{{ 'planCalculator.fileLabel' | transloco }}</label>
+              <label [for]="'dxf-file-' + plan.id" class="field-label">{{
+                'planCalculator.fileLabel' | transloco
+              }}</label>
               <app-file-picker-button
                 [inputId]="'dxf-file-' + plan.id"
                 accept=".dxf"
@@ -46,7 +48,9 @@
             </div>
 
             @if (plan.status === 'error') {
-              <div class="flex items-start justify-between gap-4 rounded-lg border border-danger/30 bg-danger/5 px-4 py-3 text-sm text-danger">
+              <div
+                class="flex items-start justify-between gap-4 rounded-lg border border-danger/30 bg-danger/5 px-4 py-3 text-sm text-danger"
+              >
                 <span>{{ plan.errorMessage }}</span>
                 <button
                   type="button"
@@ -66,7 +70,7 @@
           {{ 'planCalculator.addFloor' | transloco }}
         </button>
 
-        <div class="flex flex-wrap items-end gap-4">
+        <div class="flex flex-wrap justify-end gap-4">
           <button type="button" (click)="onSubmit()" [disabled]="!canSubmit()" class="btn-accent">
             {{ 'planCalculator.submitButton' | transloco }}
           </button>
@@ -74,7 +78,9 @@
 
         @if (isUploading()) {
           <p class="flex items-center gap-2 text-sm text-ink/60">
-            <span class="h-3 w-3 animate-spin rounded-full border-2 border-ink/20 border-t-clay"></span>
+            <span
+              class="h-3 w-3 animate-spin rounded-full border-2 border-ink/20 border-t-clay"
+            ></span>
             {{ 'planCalculator.uploading' | transloco }}
           </p>
         }
@@ -83,11 +89,15 @@
 
     @case ('summary') {
       <div class="animate-fade-in space-y-8">
-        <h2 class="font-display text-lg font-semibold text-ink">{{ 'planCalculator.summaryTitle' | transloco }}</h2>
+        <h2 class="font-display text-lg font-semibold text-ink">
+          {{ 'planCalculator.summaryTitle' | transloco }}
+        </h2>
 
         <div class="flex flex-wrap items-end gap-4">
           <div>
-            <label for="height-cm" class="field-label">{{ 'planCalculator.heightLabel' | transloco }}</label>
+            <label for="height-cm" class="field-label">{{
+              'planCalculator.heightLabel' | transloco
+            }}</label>
             <input
               id="height-cm"
               type="number"
@@ -99,8 +109,15 @@
             />
           </div>
           <div>
-            <label for="plan-unit" class="field-label">{{ 'planCalculator.unitLabel' | transloco }}</label>
-            <select id="plan-unit" [value]="unit()" (change)="onUnitChange($event)" class="field-input w-32">
+            <label for="plan-unit" class="field-label">{{
+              'planCalculator.unitLabel' | transloco
+            }}</label>
+            <select
+              id="plan-unit"
+              [value]="unit()"
+              (change)="onUnitChange($event)"
+              class="field-input w-32"
+            >
               <option value="mm">{{ 'planCalculator.unitMm' | transloco }}</option>
               <option value="cm">{{ 'planCalculator.unitCm' | transloco }}</option>
               <option value="m">{{ 'planCalculator.unitM' | transloco }}</option>
@@ -117,11 +134,21 @@
             <table class="w-full text-left text-sm">
               <thead>
                 <tr class="border-b border-line">
-                  <th class="py-2 pr-4 font-medium text-ink/60">{{ 'planCalculator.tableColor' | transloco }}</th>
-                  <th class="py-2 pr-4 font-medium text-ink/60">{{ 'planCalculator.tableKey' | transloco }}</th>
-                  <th class="py-2 pr-4 font-medium text-ink/60">{{ 'planCalculator.tableMaterial' | transloco }}</th>
-                  <th class="py-2 pr-4 font-medium text-ink/60">{{ 'planCalculator.tableLinearMeters' | transloco }}</th>
-                  <th class="py-2 pr-4 font-medium text-ink/60">{{ 'planCalculator.tableArea' | transloco }}</th>
+                  <th class="py-2 pr-4 font-medium text-ink/60">
+                    {{ 'planCalculator.tableColor' | transloco }}
+                  </th>
+                  <th class="py-2 pr-4 font-medium text-ink/60">
+                    {{ 'planCalculator.tableKey' | transloco }}
+                  </th>
+                  <th class="py-2 pr-4 font-medium text-ink/60">
+                    {{ 'planCalculator.tableMaterial' | transloco }}
+                  </th>
+                  <th class="py-2 pr-4 font-medium text-ink/60">
+                    {{ 'planCalculator.tableLinearMeters' | transloco }}
+                  </th>
+                  <th class="py-2 pr-4 font-medium text-ink/60">
+                    {{ 'planCalculator.tableArea' | transloco }}
+                  </th>
                   <th class="py-2 pr-4"></th>
                 </tr>
               </thead>
@@ -129,7 +156,10 @@
                 @for (row of report.rows; track row.key) {
                   <tr class="border-b border-line/60">
                     <td class="py-2.5 pr-4">
-                      <span class="inline-block h-4 w-9 rounded-sm border border-line" [ngStyle]="swatchStyle(row)"></span>
+                      <span
+                        class="inline-block h-4 w-9 rounded-sm border border-line"
+                        [ngStyle]="swatchStyle(row)"
+                      ></span>
                     </td>
                     <td class="py-2.5 pr-4 font-mono text-xs text-ink/70">{{ row.key }}</td>
                     <td class="py-2.5 pr-4 text-ink">
@@ -144,8 +174,12 @@
                         {{ row.label }}
                       }
                     </td>
-                    <td class="py-2.5 pr-4 font-display text-ink">{{ row.linearMeters | number: '1.2-2' }}</td>
-                    <td class="py-2.5 pr-4 font-display text-ink">{{ row.areaM2 | number: '1.2-2' }}</td>
+                    <td class="py-2.5 pr-4 font-display text-ink">
+                      {{ row.linearMeters | number: '1.2-2' }}
+                    </td>
+                    <td class="py-2.5 pr-4 font-display text-ink">
+                      {{ row.areaM2 | number: '1.2-2' }}
+                    </td>
                     <td class="py-2.5 pr-4">
                       @if (row.promotedGroup) {
                         <button
@@ -168,8 +202,13 @@
                 <ul class="mt-2 space-y-2">
                   @for (group of report.undetermined; track styleGroupKey(group)) {
                     <li class="flex flex-wrap items-center gap-2 text-ink/80">
-                      <span class="inline-block h-3 w-6 rounded-sm border border-line" [ngStyle]="swatchStyle(group)"></span>
-                      <span>{{ group.linetype }} · {{ group.linearMeters | number: '1.2-2' }} m</span>
+                      <span
+                        class="inline-block h-3 w-6 rounded-sm border border-line"
+                        [ngStyle]="swatchStyle(group)"
+                      ></span>
+                      <span
+                        >{{ group.linetype }} · {{ group.linearMeters | number: '1.2-2' }} m</span
+                      >
                       <input
                         type="text"
                         #promotedLabel
@@ -178,7 +217,10 @@
                       />
                       <button
                         type="button"
-                        (click)="promoteGroup(report.id, group, promotedLabel.value); promotedLabel.value = ''"
+                        (click)="
+                          promoteGroup(report.id, group, promotedLabel.value);
+                          promotedLabel.value = ''
+                        "
                         class="btn-primary py-1.5 text-xs"
                       >
                         {{ 'planCalculator.addToMaterials' | transloco }}
@@ -193,28 +235,47 @@
 
         @if (reports().length > 1 && totalRows().length > 0) {
           <div class="space-y-4">
-            <h3 class="font-display text-base font-semibold text-ink">{{ 'planCalculator.totalTitle' | transloco }}</h3>
+            <h3 class="font-display text-base font-semibold text-ink">
+              {{ 'planCalculator.totalTitle' | transloco }}
+            </h3>
 
             <table class="w-full text-left text-sm">
               <thead>
                 <tr class="border-b border-line">
-                  <th class="py-2 pr-4 font-medium text-ink/60">{{ 'planCalculator.tableColor' | transloco }}</th>
-                  <th class="py-2 pr-4 font-medium text-ink/60">{{ 'planCalculator.tableKey' | transloco }}</th>
-                  <th class="py-2 pr-4 font-medium text-ink/60">{{ 'planCalculator.tableMaterial' | transloco }}</th>
-                  <th class="py-2 pr-4 font-medium text-ink/60">{{ 'planCalculator.tableLinearMeters' | transloco }}</th>
-                  <th class="py-2 pr-4 font-medium text-ink/60">{{ 'planCalculator.tableArea' | transloco }}</th>
+                  <th class="py-2 pr-4 font-medium text-ink/60">
+                    {{ 'planCalculator.tableColor' | transloco }}
+                  </th>
+                  <th class="py-2 pr-4 font-medium text-ink/60">
+                    {{ 'planCalculator.tableKey' | transloco }}
+                  </th>
+                  <th class="py-2 pr-4 font-medium text-ink/60">
+                    {{ 'planCalculator.tableMaterial' | transloco }}
+                  </th>
+                  <th class="py-2 pr-4 font-medium text-ink/60">
+                    {{ 'planCalculator.tableLinearMeters' | transloco }}
+                  </th>
+                  <th class="py-2 pr-4 font-medium text-ink/60">
+                    {{ 'planCalculator.tableArea' | transloco }}
+                  </th>
                 </tr>
               </thead>
               <tbody>
                 @for (row of totalRows(); track row.key) {
                   <tr class="border-b border-line/60">
                     <td class="py-2.5 pr-4">
-                      <span class="inline-block h-4 w-9 rounded-sm border border-line" [ngStyle]="swatchStyle(row)"></span>
+                      <span
+                        class="inline-block h-4 w-9 rounded-sm border border-line"
+                        [ngStyle]="swatchStyle(row)"
+                      ></span>
                     </td>
                     <td class="py-2.5 pr-4 font-mono text-xs text-ink/70">{{ row.key }}</td>
                     <td class="py-2.5 pr-4 text-ink">{{ row.label }}</td>
-                    <td class="py-2.5 pr-4 font-display text-ink">{{ row.linearMeters | number: '1.2-2' }}</td>
-                    <td class="py-2.5 pr-4 font-display text-ink">{{ row.areaM2 | number: '1.2-2' }}</td>
+                    <td class="py-2.5 pr-4 font-display text-ink">
+                      {{ row.linearMeters | number: '1.2-2' }}
+                    </td>
+                    <td class="py-2.5 pr-4 font-display text-ink">
+                      {{ row.areaM2 | number: '1.2-2' }}
+                    </td>
                   </tr>
                 }
               </tbody>
